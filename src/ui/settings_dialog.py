@@ -220,7 +220,7 @@ class SettingsDialog(QDialog):
 
         # Temporarily update generator with new key
         model = self.model_combo.currentText()
-        from ..llm import TextGenerator
+        from llm import TextGenerator
         temp_gen = TextGenerator(api_key, model)
 
         self.test_api_btn.setEnabled(False)
@@ -283,7 +283,7 @@ class SettingsDialog(QDialog):
         base_path = Path(base_path_str)
 
         # Validate path
-        from ..utils import Validators
+        from utils import Validators
         valid, error = Validators.validate_base_path(base_path)
         if not valid:
             QMessageBox.critical(

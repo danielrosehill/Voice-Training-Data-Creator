@@ -173,14 +173,14 @@ class MainWindow(QMainWindow):
         # Update sample manager with new base path
         base_path = self.config.get_base_path()
         if base_path:
-            from ..storage import SampleManager
+            from storage import SampleManager
             self.sample_manager = SampleManager(base_path)
 
         # Update text generator with new API settings
         api_key = self.config.get_api_key()
         model = self.config.get_openai_model()
         if api_key:
-            from ..llm import TextGenerator
+            from llm import TextGenerator
             self.text_gen = TextGenerator(api_key, model)
             self.text_panel.generator = self.text_gen
 
@@ -201,7 +201,7 @@ class MainWindow(QMainWindow):
         self.check_save_enabled()
 
         # Run quality checks
-        from ..utils import Validators
+        from utils import Validators
         if Validators.detect_clipping(audio_data):
             QMessageBox.warning(
                 self,
@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
             return
 
         # Validate audio and text
-        from ..utils import Validators
+        from utils import Validators
         text = self.text_panel.get_text()
 
         valid, error = Validators.validate_sample(self.current_audio, text)
