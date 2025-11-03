@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+
+# Cleanup script runs before package removal
+exit 0

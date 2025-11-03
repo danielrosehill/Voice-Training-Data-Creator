@@ -1,0 +1,16 @@
+#!/bin/bash
+# Launcher script for Voice Training Data Creator
+
+INSTALL_DIR="/usr/lib/voice-training-data-creator"
+VENV_PYTHON="$INSTALL_DIR/venv/bin/python"
+
+# Check if virtual environment exists
+if [ ! -f "$VENV_PYTHON" ]; then
+    echo "Error: Application virtual environment not found."
+    echo "Please reinstall the package."
+    exit 1
+fi
+
+# Run the application
+cd "$INSTALL_DIR"
+exec "$VENV_PYTHON" "$INSTALL_DIR/src/main.py" "$@"

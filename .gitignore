@@ -45,3 +45,7 @@ config.json
 
 # Logs
 *.log
+
+# Debian packaging
+debian/usr/
+*.deb

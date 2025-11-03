@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Voice Training Data Creator
+GenericName=Voice Dataset Creator
+Comment=Create voice training datasets with synthetic text generation
+Exec=voice-training-data-creator
+Icon=voice-training-data-creator
+Terminal=false
+Categories=Audio;AudioVideo;Recorder;
+Keywords=voice;training;tts;stt;recording;dataset;
+StartupNotify=true
+StartupWMClass=Voice Training Data Creator

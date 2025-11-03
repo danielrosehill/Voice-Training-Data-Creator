@@ -1,0 +1,16 @@
+Package: voice-training-data-creator
+Version: 1.0.0
+Section: sound
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.10), python3-pip, python3-venv, python3-pyqt6, python3-numpy, libportaudio2
+Maintainer: Daniel Rosehill <public@danielrosehill.com>
+Homepage: https://github.com/danielrosehill/Voice-Training-Data-Creator
+Description: Voice training data creation tool
+ A GUI application for creating voice training datasets with synthetic
+ text generation. Features include high-quality audio recording,
+ AI-powered text generation, multiple style options, and custom
+ vocabulary support.
+ .
+ This tool helps create consistent, high-quality voice datasets for
+ training TTS (Text-to-Speech) and STT (Speech-to-Text) models.

@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+
+# Update desktop database
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    if [ -x /usr/bin/update-desktop-database ]; then
+        update-desktop-database -q
+    fi
+
+    if [ -x /usr/bin/gtk-update-icon-cache ]; then
+        gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor || true
+    fi
+fi
+
+# Remove virtual environment on purge
+if [ "$1" = "purge" ]; then
+    rm -rf /usr/lib/voice-training-data-creator/venv
+fi
+
+exit 0
