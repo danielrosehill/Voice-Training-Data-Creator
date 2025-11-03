@@ -1,7 +1,7 @@
 """Main application window."""
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                               QPushButton, QLabel, QMessageBox, QGroupBox,
-                              QStatusBar, QMenuBar, QFileDialog)
+                              QStatusBar, QMenuBar, QFileDialog, QTabWidget)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut
 from pathlib import Path
@@ -11,6 +11,7 @@ import numpy as np
 from .recording_panel import RecordingPanel
 from .text_panel import TextPanel
 from .settings_dialog import SettingsDialog
+from .dataset_panel import DatasetPanel
 
 
 class MainWindow(QMainWindow):
@@ -69,6 +70,15 @@ class MainWindow(QMainWindow):
         title_label.setStyleSheet("QLabel { color: #1976D2; padding: 10px; }")
         main_layout.addWidget(title_label)
 
+        # Create tab widget
+        self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
+
+        # Tab 1: Recording and Text Generation
+        recording_tab = QWidget()
+        recording_layout = QVBoxLayout()
+        recording_layout.setSpacing(15)
+
         # Main content - horizontal split
         content_layout = QHBoxLayout()
         content_layout.setSpacing(15)
@@ -82,7 +92,7 @@ class MainWindow(QMainWindow):
         self.text_panel = TextPanel(self.text_gen)
         content_layout.addWidget(self.text_panel, 1)
 
-        main_layout.addLayout(content_layout, 1)
+        recording_layout.addLayout(content_layout, 1)
 
         # Session statistics
         stats_group = QGroupBox("Session Statistics")
@@ -108,7 +118,7 @@ class MainWindow(QMainWindow):
         stats_layout.addStretch()
 
         stats_group.setLayout(stats_layout)
-        main_layout.addWidget(stats_group)
+        recording_layout.addWidget(stats_group)
 
         # Save button
         self.save_btn = QPushButton("💾 Save Sample (Ctrl+Enter)")
@@ -132,7 +142,17 @@ class MainWindow(QMainWindow):
             }
         """)
         self.save_btn.setEnabled(False)
-        main_layout.addWidget(self.save_btn)
+        recording_layout.addWidget(self.save_btn)
+
+        recording_tab.setLayout(recording_layout)
+        self.tabs.addTab(recording_tab, "📝 Record & Generate")
+
+        # Tab 2: Dataset Overview
+        self.dataset_panel = DatasetPanel(self.sample_manager, self.recorder.sample_rate)
+        self.tabs.addTab(self.dataset_panel, "📊 Dataset")
+
+        # Add tabs to main layout
+        main_layout.addWidget(self.tabs)
 
         central_widget.setLayout(main_layout)
 
@@ -204,6 +224,8 @@ class MainWindow(QMainWindow):
         if base_path:
             from storage import SampleManager
             self.sample_manager = SampleManager(base_path)
+            # Update dataset panel with new sample manager
+            self.dataset_panel.set_sample_manager(self.sample_manager)
 
         # Update text generator with new API settings
         api_key = self.config.get_api_key()
@@ -224,6 +246,7 @@ class MainWindow(QMainWindow):
         # Update recorder sample rate
         sample_rate = self.config.get_sample_rate()
         self.recorder.sample_rate = sample_rate
+        self.dataset_panel.sample_rate = sample_rate
 
         self.update_status_bar()
         self.update_statistics()
@@ -420,6 +443,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'recording_panel'):
             if hasattr(self.recording_panel, 'timer') and self.recording_panel.timer.isActive():
                 self.recording_panel.timer.stop()
+
+        # Stop dataset panel timer
+        if hasattr(self, 'dataset_panel'):
+            self.dataset_panel.cleanup()
 
         # Stop any active recording
         if self.recorder.is_recording:

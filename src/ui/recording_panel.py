@@ -157,6 +157,30 @@ class RecordingPanel(QWidget):
 
         controls_layout.addLayout(button_layout)
 
+        # Delete button (for bad takes)
+        self.delete_btn = QPushButton("🗑 Delete Recording")
+        self.delete_btn.setToolTip("Delete the current recording (for bad takes)")
+        self.delete_btn.clicked.connect(self.delete_recording)
+        self.delete_btn.setEnabled(False)
+        self.delete_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 13px;
+                padding: 10px 16px;
+                background-color: #d32f2f;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #b71c1c;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        controls_layout.addWidget(self.delete_btn)
+
         controls_group.setLayout(controls_layout)
         layout.addWidget(controls_group)
 
@@ -250,8 +274,17 @@ class RecordingPanel(QWidget):
         self.status_label.setText("Recording stopped")
         self.status_label.setStyleSheet("")
 
+        # Enable delete button after recording stops
         if self.current_audio is not None:
+            self.delete_btn.setEnabled(True)
             self.recording_finished.emit(self.current_audio)
+
+    def delete_recording(self):
+        """Delete the current recording (for bad takes)."""
+        if self.current_audio is not None:
+            self.clear_audio()
+            self.status_label.setText("Recording deleted")
+            self.delete_btn.setEnabled(False)
 
     def update_duration(self):
         """Update duration display."""
@@ -278,3 +311,4 @@ class RecordingPanel(QWidget):
         self.duration_label.setText("Duration: 00:00")
         self.status_label.setText("Ready to record")
         self.status_label.setStyleSheet("")
+        self.delete_btn.setEnabled(False)
