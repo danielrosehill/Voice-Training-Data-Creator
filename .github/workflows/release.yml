@@ -1,0 +1,110 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.14)'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Get version from tag or input
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Update version in control file
+        run: |
+          sed -i "s/^Version:.*/Version: ${{ steps.get_version.outputs.version }}/" debian/DEBIAN/control
+          cat debian/DEBIAN/control
+
+      - name: Install dependencies for build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev fakeroot
+
+      - name: Build .deb package
+        run: |
+          chmod +x build-deb.sh
+          ./build-deb.sh
+
+      - name: Get package filename
+        id: package
+        run: |
+          PACKAGE_FILE=$(ls voice-training-data-creator_*.deb | head -n 1)
+          echo "filename=$PACKAGE_FILE" >> $GITHUB_OUTPUT
+          echo "Package file: $PACKAGE_FILE"
+          ls -lh $PACKAGE_FILE
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            Voice Training Data Creator v${{ steps.get_version.outputs.version }}
+
+            ## Installation
+
+            Download the `.deb` package and install it:
+
+            ```bash
+            sudo dpkg -i voice-training-data-creator_${{ steps.get_version.outputs.version }}_all.deb
+            sudo apt-get install -f  # Install any missing dependencies
+            ```
+
+            ## Launch
+
+            ```bash
+            voice-training-data-creator
+            ```
+
+            Or find it in your application menu under Sound & Video.
+
+            ## Changelog
+
+            See [CHANGELOG.md](CHANGELOG.md) for details.
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.package.outputs.filename }}
+          asset_name: ${{ steps.package.outputs.filename }}
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: ./${{ steps.package.outputs.filename }}
+          retention-days: 30

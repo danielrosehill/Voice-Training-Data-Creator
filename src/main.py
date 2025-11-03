@@ -117,6 +117,7 @@ class VoiceTrainingApp:
             label_color=self.colors['primary'],
             indicator_color=self.colors['primary'],
             divider_color=self.colors['border'],
+            on_change=self.on_tab_change,
             tabs=[
                 ft.Tab(
                     text="Record & Generate",
@@ -173,13 +174,91 @@ class VoiceTrainingApp:
             )
         )
 
-        # Menu bar with better styling
+        # Create recording controls for app bar (initially hidden)
+        self.appbar_status_label = ft.Text(
+            "Ready",
+            size=14,
+            weight=ft.FontWeight.W_500,
+            color=COLORS.WHITE,
+        )
+
+        self.appbar_duration_label = ft.Text(
+            "00:00",
+            size=16,
+            weight=ft.FontWeight.BOLD,
+            color=COLORS.WHITE,
+        )
+
+        self.appbar_record_btn = ft.IconButton(
+            ICONS.FIBER_MANUAL_RECORD,
+            tooltip="Start recording",
+            on_click=self.start_recording,
+            icon_color=COLORS.RED_400,
+            icon_size=28,
+        )
+
+        self.appbar_pause_btn = ft.IconButton(
+            ICONS.PAUSE,
+            tooltip="Pause recording",
+            on_click=self.toggle_pause,
+            icon_color=COLORS.ORANGE_400,
+            icon_size=28,
+            visible=False,
+        )
+
+        self.appbar_stop_btn = ft.IconButton(
+            ICONS.STOP,
+            tooltip="Stop recording",
+            on_click=self.stop_recording,
+            icon_color=COLORS.WHITE,
+            icon_size=28,
+            visible=False,
+        )
+
+        self.appbar_retake_btn = ft.IconButton(
+            ICONS.REPLAY,
+            tooltip="Retake recording",
+            on_click=self.retake_recording,
+            icon_color=COLORS.ORANGE_400,
+            icon_size=28,
+            visible=False,
+        )
+
+        # Recording controls container (visible only on Record & Generate tab)
+        self.appbar_recording_controls = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                self.appbar_status_label,
+                                self.appbar_duration_label,
+                            ],
+                            spacing=2,
+                            horizontal_alignment=ft.CrossAxisAlignment.END,
+                        ),
+                        padding=ft.padding.only(right=12),
+                    ),
+                    self.appbar_record_btn,
+                    self.appbar_pause_btn,
+                    self.appbar_stop_btn,
+                    self.appbar_retake_btn,
+                    ft.Container(width=8),  # Spacer before settings icons
+                ],
+                spacing=8,
+                alignment=ft.MainAxisAlignment.END,
+            ),
+            visible=True,  # Visible by default since we start on recording tab
+        )
+
+        # Menu bar with better styling and recording controls
         self.page.appbar = ft.AppBar(
             title=ft.Text("Voice Training Data Creator", size=18, weight=ft.FontWeight.W_600),
             center_title=False,
             bgcolor=self.colors['primary'],
             color=COLORS.WHITE,
             actions=[
+                self.appbar_recording_controls,
                 ft.IconButton(
                     ICONS.SETTINGS,
                     tooltip="Open Settings",
@@ -1101,7 +1180,7 @@ class VoiceTrainingApp:
             self.show_error_dialog("Recording Error", str(ex))
             return
 
-        # Update buttons visibility and status with visual feedback
+        # Update main panel buttons visibility and status with visual feedback
         self.record_btn.visible = False
         self.pause_btn.visible = True
         self.stop_btn.visible = True
@@ -1111,6 +1190,15 @@ class VoiceTrainingApp:
         self.status_label.color = self.colors['error']
         self.duration_label.value = "Duration: 00:00"
         self.duration_label.color = self.colors['error']
+
+        # Update app bar controls
+        self.appbar_record_btn.visible = False
+        self.appbar_pause_btn.visible = True
+        self.appbar_stop_btn.visible = True
+        self.appbar_retake_btn.visible = True
+        self.appbar_status_label.value = "Recording"
+        self.appbar_duration_label.value = "00:00"
+
         self.page.update()
 
         # Start timer thread to update duration label live
@@ -1121,7 +1209,9 @@ class VoiceTrainingApp:
                 seconds = self.audio_recorder.get_duration()
                 mins = int(seconds // 60)
                 secs = int(seconds % 60)
-                self.duration_label.value = f"Duration: {mins:02d}:{secs:02d}"
+                duration_text = f"{mins:02d}:{secs:02d}"
+                self.duration_label.value = f"Duration: {duration_text}"
+                self.appbar_duration_label.value = duration_text
                 try:
                     self.page.update()
                 except Exception:
@@ -1197,6 +1287,12 @@ class VoiceTrainingApp:
         dialog.open = True
         self.page.update()
 
+    def on_tab_change(self, e):
+        """Handle tab changes to show/hide app bar recording controls."""
+        # Show app bar controls only on Record & Generate tab (index 0)
+        self.appbar_recording_controls.visible = (e.control.selected_index == 0)
+        self.page.update()
+
     def _go_to_settings(self):
         """Navigate to settings tab."""
         self.tabs.selected_index = 3
@@ -1218,18 +1314,28 @@ class VoiceTrainingApp:
             return
         if not self.audio_recorder.is_paused:
             self.audio_recorder.pause_recording()
+            # Update main panel
             self.pause_btn.text = "Resume"
             self.pause_btn.icon = ICONS.PLAY_ARROW
             self.status_label.value = "⏸ Paused"
             self.status_label.color = self.colors['warning']
             self.duration_label.color = self.colors['warning']
+            # Update app bar
+            self.appbar_pause_btn.icon = ICONS.PLAY_ARROW
+            self.appbar_pause_btn.tooltip = "Resume recording"
+            self.appbar_status_label.value = "Paused"
         else:
             self.audio_recorder.resume_recording()
+            # Update main panel
             self.pause_btn.text = "Pause"
             self.pause_btn.icon = ICONS.PAUSE
             self.status_label.value = "● Recording..."
             self.status_label.color = self.colors['error']
             self.duration_label.color = self.colors['error']
+            # Update app bar
+            self.appbar_pause_btn.icon = ICONS.PAUSE
+            self.appbar_pause_btn.tooltip = "Pause recording"
+            self.appbar_status_label.value = "Recording"
         self.page.update()
 
     def stop_recording(self, e):
@@ -1247,12 +1353,19 @@ class VoiceTrainingApp:
 
         audio = self.audio_recorder.stop_recording()
         if audio is None or len(audio) == 0:
+            # Update main panel
             self.status_label.value = "No audio captured"
             self.record_btn.visible = True
             self.pause_btn.visible = False
             self.stop_btn.visible = False
             self.retake_btn.visible = False
             self.delete_btn.disabled = True
+            # Update app bar
+            self.appbar_record_btn.visible = True
+            self.appbar_pause_btn.visible = False
+            self.appbar_stop_btn.visible = False
+            self.appbar_retake_btn.visible = False
+            self.appbar_status_label.value = "Ready"
             self.page.update()
             return
 
@@ -1260,12 +1373,13 @@ class VoiceTrainingApp:
         seconds = self.audio_recorder.get_duration(audio)
         mins = int(seconds // 60)
         secs = int(seconds % 60)
-        self.duration_label.value = f"Duration: {mins:02d}:{secs:02d}"
+        duration_text = f"{mins:02d}:{secs:02d}"
+
+        # Update main panel
+        self.duration_label.value = f"Duration: {duration_text}"
         self.duration_label.color = self.colors['success']
         self.status_label.value = "✓ Recording complete"
         self.status_label.color = self.colors['success']
-
-        # Update buttons visibility
         self.record_btn.visible = True
         self.pause_btn.visible = False
         self.pause_btn.text = "Pause"
@@ -1273,6 +1387,14 @@ class VoiceTrainingApp:
         self.stop_btn.visible = False
         self.retake_btn.visible = False
         self.delete_btn.disabled = False
+
+        # Update app bar
+        self.appbar_duration_label.value = duration_text
+        self.appbar_status_label.value = "Complete"
+        self.appbar_record_btn.visible = True
+        self.appbar_pause_btn.visible = False
+        self.appbar_stop_btn.visible = False
+        self.appbar_retake_btn.visible = False
 
         # Enable save if text exists
         self.check_save_enabled()
