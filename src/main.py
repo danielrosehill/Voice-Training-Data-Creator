@@ -1724,7 +1724,8 @@ class VoiceTrainingApp:
             self.current_playing_sample = sample
             self.show_audio_player_dialog(audio_path, sample)
         except Exception as e:
-            self.show_error_dialog("Error Playing Audio", str(e))
+            # If in-app player fails, offer system player as fallback
+            self.show_audio_error_with_fallback(audio_path, str(e))
 
     def show_audio_player_dialog(self, audio_path: str, sample: dict):
         """Show audio player dialog with playback controls.
@@ -1737,9 +1738,13 @@ class VoiceTrainingApp:
         duration = sample.get('duration', 0)
         text_content = sample.get('text_content', '(no text)')
 
+        # Convert file path to proper URI format for Flet
+        audio_file_path = Path(audio_path).resolve()
+        audio_uri = f"file://{audio_file_path}"
+
         # Create audio player
         self.audio_player = ft.Audio(
-            src=audio_path,
+            src=audio_uri,
             autoplay=True,
             volume=1.0,
             on_duration_changed=lambda e: self.update_audio_duration(e),
@@ -1908,6 +1913,48 @@ class VoiceTrainingApp:
 
         self.current_playing_sample = None
         dialog.open = False
+        self.page.update()
+
+    def show_audio_error_with_fallback(self, audio_path: str, error: str):
+        """Show error dialog with option to play in system player.
+
+        Args:
+            audio_path: Path to the audio file.
+            error: Error message from in-app player.
+        """
+        def play_in_system(_):
+            try:
+                system = platform.system()
+                if system == "Linux":
+                    subprocess.Popen(["xdg-open", audio_path])
+                elif system == "Darwin":  # macOS
+                    subprocess.Popen(["open", audio_path])
+                elif system == "Windows":
+                    subprocess.Popen(["start", audio_path], shell=True)
+                self.close_dialog(dialog)
+            except Exception as ex:
+                self.close_dialog(dialog)
+                self.show_error_dialog("Error", f"Failed to open audio file: {ex}")
+
+        dialog = ft.AlertDialog(
+            title=ft.Text("Audio Player Error"),
+            content=ft.Text(
+                f"Failed to play audio in-app: {error}\n\n"
+                "Would you like to open the audio file in your system's default player?"
+            ),
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda _: self.close_dialog(dialog)),
+                ft.ElevatedButton(
+                    "Open in System Player",
+                    icon=ICONS.OPEN_IN_NEW,
+                    on_click=play_in_system,
+                    bgcolor=self.colors['primary'],
+                    color=COLORS.WHITE,
+                ),
+            ],
+        )
+        self.page.dialog = dialog
+        dialog.open = True
         self.page.update()
 
     def confirm_delete_sample(self, sample_num: int):
