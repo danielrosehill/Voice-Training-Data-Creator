@@ -185,3 +185,90 @@ class SampleManager:
             'timestamp': datetime.now().isoformat(),
             'generation_params': generation_params
         }
+
+    def get_all_samples(self) -> List[dict]:
+        """Get information about all samples.
+
+        Returns:
+            List of sample info dictionaries, sorted by sample number.
+        """
+        if not self.samples_dir.exists():
+            return []
+
+        samples = []
+        for item in self.samples_dir.iterdir():
+            if item.is_dir() and item.name.isdigit():
+                sample_num = int(item.name)
+                info = self.get_sample_info(sample_num)
+                if info:
+                    # Add audio duration
+                    audio_file = item / f"{sample_num}.wav"
+                    if audio_file.exists():
+                        try:
+                            import soundfile as sf
+                            info_audio = sf.info(audio_file)
+                            info['duration'] = info_audio.duration
+                            info['audio_path'] = str(audio_file)
+                        except Exception:
+                            info['duration'] = 0.0
+                            info['audio_path'] = str(audio_file)
+                    samples.append(info)
+
+        return sorted(samples, key=lambda x: x['number'])
+
+    def delete_sample(self, sample_num: int) -> Tuple[bool, Optional[str]]:
+        """Delete a sample and renumber all subsequent samples.
+
+        Args:
+            sample_num: Sample number to delete.
+
+        Returns:
+            Tuple of (success, error_message).
+        """
+        try:
+            folder = self.get_sample_folder(sample_num)
+            if not folder.exists():
+                return False, f"Sample {sample_num} not found"
+
+            # Delete the folder
+            import shutil
+            shutil.rmtree(folder)
+
+            # Renumber all subsequent samples
+            all_samples = []
+            for item in self.samples_dir.iterdir():
+                if item.is_dir() and item.name.isdigit():
+                    num = int(item.name)
+                    if num > sample_num:
+                        all_samples.append(num)
+
+            # Sort and renumber
+            all_samples.sort()
+            for old_num in all_samples:
+                new_num = old_num - 1
+                old_folder = self.get_sample_folder(old_num)
+                new_folder = self.get_sample_folder(new_num)
+
+                # Rename folder
+                old_folder.rename(new_folder)
+
+                # Rename files inside
+                old_audio = new_folder / f"{old_num}.wav"
+                new_audio = new_folder / f"{new_num}.wav"
+                if old_audio.exists():
+                    old_audio.rename(new_audio)
+
+                old_text = new_folder / f"{old_num}.txt"
+                new_text = new_folder / f"{new_num}.txt"
+                if old_text.exists():
+                    old_text.rename(new_text)
+
+                old_metadata = new_folder / f"{old_num}_metadata.json"
+                new_metadata = new_folder / f"{new_num}_metadata.json"
+                if old_metadata.exists():
+                    old_metadata.rename(new_metadata)
+
+            return True, None
+
+        except Exception as e:
+            return False, str(e)

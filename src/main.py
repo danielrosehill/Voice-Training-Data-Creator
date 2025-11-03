@@ -99,6 +99,11 @@ class VoiceTrainingApp:
                     content=self.build_dataset_tab(),
                 ),
                 ft.Tab(
+                    text="Training Files",
+                    icon=ICONS.FOLDER_OPEN,
+                    content=self.build_training_files_tab(),
+                ),
+                ft.Tab(
                     text="Settings",
                     icon=ICONS.SETTINGS,
                     content=self.build_settings_tab(),
@@ -530,6 +535,46 @@ class VoiceTrainingApp:
         self.refresh_dataset_stats()
 
         return ft.Container(content=content, padding=20)
+
+    def build_training_files_tab(self):
+        """Build the training files browser tab.
+
+        Returns:
+            The tab content.
+        """
+        # Header
+        header = ft.Text("Training Files", size=24, weight=ft.FontWeight.BOLD)
+
+        # File list container (populated on refresh)
+        self.files_list = ft.Column([], spacing=10, scroll=ft.ScrollMode.AUTO, expand=True)
+
+        # Refresh button
+        refresh_files_btn = ft.ElevatedButton(
+            "Refresh Files",
+            icon=ICONS.REFRESH,
+            on_click=lambda _: self.refresh_training_files(),
+        )
+
+        # Stats label
+        self.files_stats_label = ft.Text("Loading files...", size=14)
+
+        # Main content
+        content = ft.Column(
+            [
+                header,
+                self.files_stats_label,
+                refresh_files_btn,
+                ft.Divider(),
+                self.files_list,
+            ],
+            spacing=16,
+            expand=True,
+        )
+
+        # Initial load
+        self.refresh_training_files()
+
+        return ft.Container(content=content, padding=20, expand=True)
 
     def build_settings_tab(self):
         """Build the settings tab.
@@ -1397,6 +1442,171 @@ class VoiceTrainingApp:
                 self.show_error_dialog("Unsupported OS", f"Cannot open folder on {system}")
         except Exception as ex:
             self.show_error_dialog("Error Opening Folder", str(ex))
+
+    def refresh_training_files(self):
+        """Refresh the training files list."""
+        try:
+            samples = self.sample_manager.get_all_samples()
+
+            # Update stats
+            total_duration = sum(s.get('duration', 0) for s in samples)
+            self.files_stats_label.value = f"Total samples: {len(samples)} | Total duration: {total_duration:.1f}s ({total_duration/60:.1f} min)"
+
+            # Clear existing list
+            self.files_list.controls.clear()
+
+            if not samples:
+                self.files_list.controls.append(
+                    ft.Text("No training files found. Start recording to create samples!",
+                           size=14, italic=True, color=COLORS.GREY_600)
+                )
+            else:
+                # Add each sample as a card
+                for sample in samples:
+                    self.files_list.controls.append(self.create_sample_card(sample))
+
+            self.page.update()
+
+        except Exception as e:
+            self.show_error_dialog("Error Loading Files", str(e))
+
+    def create_sample_card(self, sample: dict):
+        """Create a card widget for a sample.
+
+        Args:
+            sample: Sample info dictionary.
+
+        Returns:
+            Card widget.
+        """
+        sample_num = sample['number']
+        duration = sample.get('duration', 0)
+        text_content = sample.get('text_content', '(no text)')
+
+        # Truncate text for display
+        display_text = text_content[:100] + "..." if len(text_content) > 100 else text_content
+
+        # Play button
+        play_btn = ft.IconButton(
+            icon=ICONS.PLAY_ARROW,
+            tooltip="Play audio",
+            on_click=lambda _: self.play_sample_audio(sample),
+            icon_color=COLORS.BLUE_700,
+        )
+
+        # Delete button
+        delete_btn = ft.IconButton(
+            icon=ICONS.DELETE,
+            tooltip="Delete sample",
+            on_click=lambda _: self.confirm_delete_sample(sample_num),
+            icon_color=COLORS.RED_700,
+        )
+
+        # Sample info
+        info_column = ft.Column(
+            [
+                ft.Text(f"Sample #{sample_num:03d}", weight=ft.FontWeight.BOLD, size=16),
+                ft.Text(f"Duration: {duration:.2f}s", size=12, color=COLORS.GREY_700),
+                ft.Text(f"Text: {display_text}", size=12, italic=True),
+            ],
+            spacing=4,
+            expand=True,
+        )
+
+        # Card content
+        card_content = ft.Row(
+            [
+                info_column,
+                play_btn,
+                delete_btn,
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+        return ft.Card(
+            content=ft.Container(
+                content=card_content,
+                padding=15,
+            ),
+            elevation=2,
+        )
+
+    def play_sample_audio(self, sample: dict):
+        """Play audio for a sample.
+
+        Args:
+            sample: Sample info dictionary.
+        """
+        audio_path = sample.get('audio_path')
+        if not audio_path:
+            self.show_error_dialog("No Audio", "Audio file not found for this sample.")
+            return
+
+        try:
+            # Use system default audio player
+            system = platform.system()
+            if system == "Linux":
+                subprocess.Popen(["xdg-open", audio_path])
+            elif system == "Darwin":  # macOS
+                subprocess.Popen(["open", audio_path])
+            elif system == "Windows":
+                subprocess.Popen(["start", audio_path], shell=True)
+            else:
+                self.show_error_dialog("Unsupported OS", f"Cannot play audio on {system}")
+        except Exception as e:
+            self.show_error_dialog("Error Playing Audio", str(e))
+
+    def confirm_delete_sample(self, sample_num: int):
+        """Show confirmation dialog for deleting a sample.
+
+        Args:
+            sample_num: Sample number to delete.
+        """
+        dialog = ft.AlertDialog(
+            title=ft.Text("Confirm Delete"),
+            content=ft.Text(
+                f"Are you sure you want to delete sample #{sample_num:03d}?\n\n"
+                "This will permanently delete the sample and renumber all subsequent samples."
+            ),
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda _: self.close_dialog(dialog)),
+                ft.TextButton(
+                    "Delete",
+                    on_click=lambda _: self.delete_sample(sample_num, dialog),
+                    style=ft.ButtonStyle(color=COLORS.RED_700),
+                ),
+            ],
+        )
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+
+    def delete_sample(self, sample_num: int, dialog):
+        """Delete a sample and refresh the list.
+
+        Args:
+            sample_num: Sample number to delete.
+            dialog: Dialog to close after deletion.
+        """
+        try:
+            success, error = self.sample_manager.delete_sample(sample_num)
+
+            if success:
+                self.close_dialog(dialog)
+                self.refresh_training_files()
+                self.refresh_dataset_stats()
+                self.show_info_dialog(
+                    "Sample Deleted",
+                    f"Sample #{sample_num:03d} has been deleted and subsequent samples have been renumbered."
+                )
+            else:
+                self.close_dialog(dialog)
+                self.show_error_dialog("Delete Failed", error or "Unknown error")
+
+        except Exception as e:
+            self.close_dialog(dialog)
+            self.show_error_dialog("Delete Failed", str(e))
 
     def show_info_dialog(self, title, message):
         """Show info dialog."""
