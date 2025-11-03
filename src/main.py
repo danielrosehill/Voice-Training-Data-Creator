@@ -231,11 +231,11 @@ class VoiceTrainingApp:
             on_change=self.on_autogenerate_toggled,
         )
 
+        # Recording panel (moved above text panel)
+        recording_panel = self.build_recording_panel()
+
         # Text generation panel
         text_panel = self.build_text_panel()
-
-        # Recording panel
-        recording_panel = self.build_recording_panel()
 
         # Session statistics
         stats = self.build_statistics_panel()
@@ -245,8 +245,8 @@ class VoiceTrainingApp:
                 [
                     self.save_btn,
                     self.autogenerate_checkbox,
-                    text_panel,
                     recording_panel,
+                    text_panel,
                     stats,
                 ],
                 spacing=15,
@@ -350,28 +350,15 @@ class VoiceTrainingApp:
             ),
         )
 
-        self.view_text_btn = ft.OutlinedButton(
-            "View Text",
-            icon=ICONS.VISIBILITY,
-            on_click=lambda e: self.open_narration_view(),
-            disabled=True,
-            tooltip="Open text in large, readable view for recording",
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=8),
-                side=ft.BorderSide(2, self.colors['primary']),
-                color={"": self.colors['primary'], "disabled": self.colors['text_secondary']},
-                padding=ft.padding.symmetric(horizontal=20, vertical=12),
-            ),
-        )
-
-        # Text display
+        # Text display - expandable
         self.text_edit = ft.TextField(
             label="Generated Text",
             multiline=True,
-            min_lines=5,
-            max_lines=10,
+            min_lines=8,
+            max_lines=25,
             hint_text="Generated text will appear here. You can edit it before saving.",
             on_change=self.on_text_changed,
+            expand=True,
         )
 
         self.char_count_label = ft.Text("Characters: 0 | Words: 0", size=12, color=COLORS.GREY_700)
@@ -387,7 +374,7 @@ class VoiceTrainingApp:
                         self.use_dict_checkbox,
                         self.dict_input,
                         ft.Container(height=8),
-                        ft.Row([self.generate_btn, self.new_sample_btn, self.regenerate_btn, self.view_text_btn], spacing=12, wrap=True),
+                        ft.Row([self.generate_btn, self.new_sample_btn, self.regenerate_btn], spacing=12, wrap=True),
                         ft.Divider(height=1, color=self.colors['border']),
                         self.text_edit,
                         self.char_count_label,
@@ -964,7 +951,6 @@ class VoiceTrainingApp:
         self.char_count_label.value = f"Characters: {char_count} | Words: {word_count}"
         self.check_save_enabled()
         has_text = bool(text.strip())
-        self.view_text_btn.disabled = not has_text
         self.new_sample_btn.disabled = not has_text
         self.page.update()
 
@@ -997,7 +983,6 @@ class VoiceTrainingApp:
                 self.text_edit.value = text
                 self.new_sample_btn.disabled = False
                 self.regenerate_btn.disabled = False
-                self.view_text_btn.disabled = False
             else:
                 self.show_error_dialog("No Text", "No text was generated. Please try again.")
 
@@ -1024,7 +1009,6 @@ class VoiceTrainingApp:
         self.delete_btn.disabled = True
         self.new_sample_btn.disabled = True
         self.regenerate_btn.disabled = True
-        self.view_text_btn.disabled = True
         self.save_btn.disabled = True
 
         self.page.update()
