@@ -29,20 +29,16 @@ def main():
     api_key = config.get_api_key()
     model = config.get_openai_model()
 
-    if api_key:
-        try:
-            text_generator = TextGenerator(api_key, model)
-        except Exception as e:
-            QMessageBox.warning(
-                None,
-                "API Initialization Failed",
-                f"Failed to initialize text generator:\n{str(e)}\n\n"
-                "You can configure the API key in Settings."
-            )
-            # Create dummy generator that will fail gracefully
-            text_generator = TextGenerator("", model)
-    else:
-        # No API key configured yet
+    # Always create text generator with the API key (even if empty)
+    # The generator will handle empty keys gracefully when methods are called
+    if not api_key:
+        api_key = ""
+
+    try:
+        text_generator = TextGenerator(api_key, model)
+    except Exception as e:
+        print(f"Warning: Failed to initialize text generator: {e}")
+        # Create with empty key - will fail gracefully when used
         text_generator = TextGenerator("", model)
 
     # Initialize sample manager

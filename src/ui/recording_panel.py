@@ -11,6 +11,7 @@ class RecordingPanel(QWidget):
 
     # Signals
     recording_finished = pyqtSignal(np.ndarray)  # Emitted when recording stops
+    audio_level_updated = pyqtSignal(float)  # Emitted when audio level changes
 
     def __init__(self, audio_recorder, device_manager):
         """Initialize recording panel.
@@ -28,6 +29,9 @@ class RecordingPanel(QWidget):
         self.init_ui()
         self.setup_timer()
         self.setup_callbacks()
+
+        # Connect audio level signal to UI update
+        self.audio_level_updated.connect(self._update_audio_level_ui)
 
     def init_ui(self):
         """Initialize UI components."""
@@ -206,6 +210,15 @@ class RecordingPanel(QWidget):
 
     def update_audio_level(self, level: float):
         """Update audio level meter.
+
+        Args:
+            level: Audio level (0.0 to 1.0).
+        """
+        # Emit signal to update UI on main thread
+        self.audio_level_updated.emit(level)
+
+    def _update_audio_level_ui(self, level: float):
+        """Internal method to update UI (called on main thread).
 
         Args:
             level: Audio level (0.0 to 1.0).

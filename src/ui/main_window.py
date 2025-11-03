@@ -179,10 +179,18 @@ class MainWindow(QMainWindow):
         # Update text generator with new API settings
         api_key = self.config.get_api_key()
         model = self.config.get_openai_model()
-        if api_key:
-            from llm import TextGenerator
+
+        # Always recreate text generator when settings change
+        if not api_key:
+            api_key = ""
+
+        from llm import TextGenerator
+        try:
             self.text_gen = TextGenerator(api_key, model)
             self.text_panel.generator = self.text_gen
+            print(f"Text generator updated with API key (length: {len(api_key)})")
+        except Exception as e:
+            print(f"Error updating text generator: {e}")
 
         # Update recorder sample rate
         sample_rate = self.config.get_sample_rate()
@@ -365,9 +373,25 @@ class MainWindow(QMainWindow):
             )
 
             if reply == QMessageBox.StandardButton.Yes:
-                self.recorder.stop_recording()
+                self.cleanup()
                 event.accept()
             else:
                 event.ignore()
         else:
+            self.cleanup()
             event.accept()
+
+    def cleanup(self):
+        """Clean up resources before closing."""
+        # Stop stats timer
+        if hasattr(self, 'stats_timer') and self.stats_timer.isActive():
+            self.stats_timer.stop()
+
+        # Stop recording panel timer
+        if hasattr(self, 'recording_panel'):
+            if hasattr(self.recording_panel, 'timer') and self.recording_panel.timer.isActive():
+                self.recording_panel.timer.stop()
+
+        # Stop any active recording
+        if self.recorder.is_recording:
+            self.recorder.stop_recording()
