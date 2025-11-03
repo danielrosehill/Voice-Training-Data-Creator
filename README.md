@@ -10,6 +10,8 @@ A desktop GUI application for creating voice training datasets with AI-powered s
 
 ![alt text](screenshots/4.png)
 
+![alt text](screenshots/5.png)
+
 ## Dataset System
 
 Each sample is saved as a numbered folder (starting from 001) with:
