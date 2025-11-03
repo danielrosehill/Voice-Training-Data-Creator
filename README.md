@@ -104,7 +104,7 @@ For development or if you prefer not to install system-wide:
 
 - Python 3.10 or higher
 - Ubuntu Desktop (tested on Ubuntu 25.04 with KDE)
-- System packages: `python3-pyqt6`, `libportaudio2`
+- System packages: `libportaudio2`
 - OpenAI API key (for text generation)
 
 ### Setup
@@ -236,11 +236,7 @@ Voice-Training-Data-Creator/
 │   ├── storage/             # Configuration and data storage
 │   │   ├── config.py
 │   │   └── sample_manager.py
-│   ├── ui/                  # PyQt6 UI components
-│   │   ├── main_window.py
-│   │   ├── recording_panel.py
-│   │   ├── text_panel.py
-│   │   └── settings_dialog.py
+│   ├── main.py              # Flet UI (single-file architecture)
 │   └── utils/               # Validation utilities
 │       └── validators.py
 ├── requirements.txt
@@ -250,12 +246,20 @@ Voice-Training-Data-Creator/
 
 ### Dependencies
 
-- **PyQt6**: GUI framework
+- **Flet**: Modern GUI framework (Flutter-based)
 - **sounddevice**: Audio recording
 - **soundfile**: WAV file handling
 - **numpy**: Audio processing
 - **openai**: LLM text generation
 - **keyring**: Secure credential storage
+
+### UI Framework Migration Note
+
+This application was recently migrated from PyQt6 to Flet for improved layout reliability and modern UI patterns. Flet provides:
+- Flutter-based rendering with predictable layouts
+- Declarative UI architecture
+- Better cross-platform support
+- Material Design by default
 
 ## License
 
@@ -268,6 +272,6 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 ## Acknowledgments
 
 Built with:
-- PyQt6 for the GUI
+- Flet (Flutter) for the GUI
 - OpenAI GPT for text generation
 - sounddevice for audio recording
