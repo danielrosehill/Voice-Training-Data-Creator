@@ -1,5 +1,7 @@
 # Voice Training Data Creator
 
+![alt text](screenshots/1.png)
+
 A desktop GUI application for creating high-quality voice training datasets with AI-powered synthetic text generation. Perfect for voice cloning, TTS model training, and STT fine-tuning projects.
 
 ## Features
