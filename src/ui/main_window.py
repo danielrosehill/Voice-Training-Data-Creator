@@ -49,25 +49,29 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         """Initialize UI components."""
         self.setWindowTitle("Voice Training Data Creator")
-        self.resize(1000, 800)
+        self.resize(1200, 850)
 
         # Create central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout()
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(15, 15, 15, 15)
 
         # Title
         title_label = QLabel("Voice Training Data Creator")
         title_font = title_label.font()
-        title_font.setPointSize(18)
+        title_font.setPointSize(20)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("QLabel { color: #1976D2; padding: 10px; }")
         main_layout.addWidget(title_label)
 
         # Main content - horizontal split
         content_layout = QHBoxLayout()
+        content_layout.setSpacing(15)
 
         # Left side - Recording
         self.recording_panel = RecordingPanel(self.recorder, self.device_manager)
@@ -83,14 +87,22 @@ class MainWindow(QMainWindow):
         # Session statistics
         stats_group = QGroupBox("Session Statistics")
         stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(20)
+        stats_layout.setContentsMargins(15, 10, 15, 10)
 
         self.session_label = QLabel("This Session: 0 samples")
+        self.session_label.setStyleSheet("QLabel { font-size: 11pt; }")
+        self.session_label.setToolTip("Number of samples recorded in this session")
         stats_layout.addWidget(self.session_label)
 
         self.total_label = QLabel("Total: 0 samples")
+        self.total_label.setStyleSheet("QLabel { font-size: 11pt; font-weight: bold; }")
+        self.total_label.setToolTip("Total samples in your dataset")
         stats_layout.addWidget(self.total_label)
 
         self.duration_label = QLabel("Total Duration: 0.0 min")
+        self.duration_label.setStyleSheet("QLabel { font-size: 11pt; }")
+        self.duration_label.setToolTip("Total audio duration in your dataset")
         stats_layout.addWidget(self.duration_label)
 
         stats_layout.addStretch()
@@ -99,9 +111,26 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(stats_group)
 
         # Save button
-        self.save_btn = QPushButton("💾 Save Sample")
+        self.save_btn = QPushButton("💾 Save Sample (Ctrl+Enter)")
+        self.save_btn.setToolTip("Save the current recording and text as a training sample")
         self.save_btn.clicked.connect(self.save_sample)
-        self.save_btn.setStyleSheet("QPushButton { font-size: 16px; padding: 15px; background-color: #4CAF50; color: white; }")
+        self.save_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;
+                padding: 18px;
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
         self.save_btn.setEnabled(False)
         main_layout.addWidget(self.save_btn)
 

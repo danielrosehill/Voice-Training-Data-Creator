@@ -1,6 +1,6 @@
 """Recording panel UI component."""
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                              QLabel, QComboBox, QGroupBox, QProgressBar)
+                              QLabel, QComboBox, QGroupBox, QSpacerItem, QSizePolicy)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
 import numpy as np
@@ -11,7 +11,6 @@ class RecordingPanel(QWidget):
 
     # Signals
     recording_finished = pyqtSignal(np.ndarray)  # Emitted when recording stops
-    audio_level_updated = pyqtSignal(float)  # Emitted when audio level changes
 
     def __init__(self, audio_recorder, device_manager):
         """Initialize recording panel.
@@ -28,82 +27,141 @@ class RecordingPanel(QWidget):
 
         self.init_ui()
         self.setup_timer()
-        self.setup_callbacks()
-
-        # Connect audio level signal to UI update
-        self.audio_level_updated.connect(self._update_audio_level_ui)
 
     def init_ui(self):
         """Initialize UI components."""
         layout = QVBoxLayout()
+        layout.setSpacing(15)
 
         # Recording controls group
         controls_group = QGroupBox("Recording Controls")
         controls_layout = QVBoxLayout()
+        controls_layout.setSpacing(12)
 
         # Device selector
         device_layout = QHBoxLayout()
-        device_layout.addWidget(QLabel("Microphone:"))
+        mic_label = QLabel("Microphone:")
+        mic_label.setToolTip("Select your input device for recording")
+        device_layout.addWidget(mic_label)
 
         self.device_combo = QComboBox()
+        self.device_combo.setToolTip("Choose the microphone you want to use")
         self.populate_devices()
         self.device_combo.currentIndexChanged.connect(self.on_device_changed)
         device_layout.addWidget(self.device_combo, 1)
 
         self.test_mic_btn = QPushButton("Test Mic")
+        self.test_mic_btn.setToolTip("Test your microphone by recording a 3-second sample")
         self.test_mic_btn.clicked.connect(self.test_microphone)
+        self.test_mic_btn.setStyleSheet("QPushButton { padding: 6px 12px; }")
         device_layout.addWidget(self.test_mic_btn)
 
         controls_layout.addLayout(device_layout)
 
-        # Recording buttons
-        button_layout = QHBoxLayout()
+        # Add spacing
+        controls_layout.addSpacing(10)
 
-        self.record_btn = QPushButton("⏺ Record")
-        self.record_btn.clicked.connect(self.start_recording)
-        self.record_btn.setStyleSheet("QPushButton { font-size: 14px; padding: 10px; }")
-        button_layout.addWidget(self.record_btn)
-
-        self.pause_btn = QPushButton("⏸ Pause")
-        self.pause_btn.clicked.connect(self.toggle_pause)
-        self.pause_btn.setEnabled(False)
-        button_layout.addWidget(self.pause_btn)
-
-        self.stop_btn = QPushButton("⏹ Stop")
-        self.stop_btn.clicked.connect(self.stop_recording)
-        self.stop_btn.setEnabled(False)
-        button_layout.addWidget(self.stop_btn)
-
-        controls_layout.addLayout(button_layout)
+        # Status label (moved above buttons for better visibility)
+        self.status_label = QLabel("Ready to record")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_font = QFont()
+        status_font.setPointSize(11)
+        status_font.setBold(True)
+        self.status_label.setFont(status_font)
+        controls_layout.addWidget(self.status_label)
 
         # Duration display
         self.duration_label = QLabel("Duration: 00:00")
         duration_font = QFont()
-        duration_font.setPointSize(16)
+        duration_font.setPointSize(20)
         duration_font.setBold(True)
         self.duration_label.setFont(duration_font)
         self.duration_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.duration_label.setStyleSheet("QLabel { color: #2196F3; }")
         controls_layout.addWidget(self.duration_label)
 
-        # Audio level meter
-        level_layout = QVBoxLayout()
-        level_layout.addWidget(QLabel("Audio Level:"))
+        # Add spacing
+        controls_layout.addSpacing(10)
 
-        self.level_bar = QProgressBar()
-        self.level_bar.setRange(0, 100)
-        self.level_bar.setValue(0)
-        self.level_bar.setTextVisible(False)
-        level_layout.addWidget(self.level_bar)
+        # Recording buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
 
-        controls_layout.addLayout(level_layout)
+        self.record_btn = QPushButton("⏺ Record")
+        self.record_btn.setToolTip("Start recording (Space when ready)")
+        self.record_btn.clicked.connect(self.start_recording)
+        self.record_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                padding: 12px 20px;
+                background-color: #f44336;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #da190b;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        button_layout.addWidget(self.record_btn)
 
-        # Status label
-        self.status_label = QLabel("Ready to record")
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        controls_layout.addWidget(self.status_label)
+        self.pause_btn = QPushButton("⏸ Pause")
+        self.pause_btn.setToolTip("Pause/resume recording")
+        self.pause_btn.clicked.connect(self.toggle_pause)
+        self.pause_btn.setEnabled(False)
+        self.pause_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                padding: 12px 20px;
+                background-color: #FF9800;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        button_layout.addWidget(self.pause_btn)
+
+        self.stop_btn = QPushButton("⏹ Stop")
+        self.stop_btn.setToolTip("Stop recording and prepare to save")
+        self.stop_btn.clicked.connect(self.stop_recording)
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                padding: 12px 20px;
+                background-color: #757575;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        button_layout.addWidget(self.stop_btn)
+
+        controls_layout.addLayout(button_layout)
 
         controls_group.setLayout(controls_layout)
         layout.addWidget(controls_group)
+
+        # Add stretch to push everything to the top
+        layout.addStretch()
 
         self.setLayout(layout)
 
@@ -111,10 +169,6 @@ class RecordingPanel(QWidget):
         """Setup timer for duration updates."""
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_duration)
-
-    def setup_callbacks(self):
-        """Setup callbacks for audio recorder."""
-        self.recorder.set_level_callback(self.update_audio_level)
 
     def populate_devices(self):
         """Populate device combo box."""
@@ -208,33 +262,6 @@ class RecordingPanel(QWidget):
         seconds = int(self.recording_time % 60)
         self.duration_label.setText(f"Duration: {minutes:02d}:{seconds:02d}")
 
-    def update_audio_level(self, level: float):
-        """Update audio level meter.
-
-        Args:
-            level: Audio level (0.0 to 1.0).
-        """
-        # Emit signal to update UI on main thread
-        self.audio_level_updated.emit(level)
-
-    def _update_audio_level_ui(self, level: float):
-        """Internal method to update UI (called on main thread).
-
-        Args:
-            level: Audio level (0.0 to 1.0).
-        """
-        # Convert to percentage and update progress bar
-        percentage = min(100, int(level * 100 * 10))  # Scale up for visibility
-        self.level_bar.setValue(percentage)
-
-        # Color code the level bar
-        if percentage > 90:
-            self.level_bar.setStyleSheet("QProgressBar::chunk { background-color: red; }")
-        elif percentage > 70:
-            self.level_bar.setStyleSheet("QProgressBar::chunk { background-color: orange; }")
-        else:
-            self.level_bar.setStyleSheet("QProgressBar::chunk { background-color: green; }")
-
     def get_audio_data(self):
         """Get the current recorded audio data.
 
@@ -249,6 +276,5 @@ class RecordingPanel(QWidget):
         self.recorder.clear_audio()
         self.recording_time = 0.0
         self.duration_label.setText("Duration: 00:00")
-        self.level_bar.setValue(0)
         self.status_label.setText("Ready to record")
         self.status_label.setStyleSheet("")

@@ -58,68 +58,126 @@ class TextPanel(QWidget):
     def init_ui(self):
         """Initialize UI components."""
         layout = QVBoxLayout()
+        layout.setSpacing(15)
 
         # Text generation controls group
         controls_group = QGroupBox("Text Generation")
         controls_layout = QVBoxLayout()
+        controls_layout.setSpacing(12)
 
         # Duration control
         duration_layout = QHBoxLayout()
-        duration_layout.addWidget(QLabel("Target Duration (minutes):"))
+        duration_label = QLabel("Target Duration (minutes):")
+        duration_label.setToolTip("How long should the text take to read?")
+        duration_layout.addWidget(duration_label)
         self.duration_spin = QDoubleSpinBox()
         self.duration_spin.setRange(0.5, 60.0)
         self.duration_spin.setValue(3.0)
         self.duration_spin.setSingleStep(0.5)
+        self.duration_spin.setToolTip("Typical voice samples are 3-5 minutes")
         duration_layout.addWidget(self.duration_spin)
         duration_layout.addStretch()
         controls_layout.addLayout(duration_layout)
 
         # WPM control
         wpm_layout = QHBoxLayout()
-        wpm_layout.addWidget(QLabel("Words Per Minute:"))
+        wpm_label = QLabel("Words Per Minute:")
+        wpm_label.setToolTip("Speaking speed for calculating text length")
+        wpm_layout.addWidget(wpm_label)
         self.wpm_spin = QSpinBox()
         self.wpm_spin.setRange(50, 300)
         self.wpm_spin.setValue(150)
         self.wpm_spin.setSingleStep(10)
+        self.wpm_spin.setToolTip("Average speaking speed is 130-170 WPM")
         wpm_layout.addWidget(self.wpm_spin)
         wpm_layout.addStretch()
         controls_layout.addLayout(wpm_layout)
 
         # Style selector
         style_layout = QHBoxLayout()
-        style_layout.addWidget(QLabel("Style:"))
+        style_label = QLabel("Style:")
+        style_label.setToolTip("Choose the speaking style for generated text")
+        style_layout.addWidget(style_label)
         self.style_combo = QComboBox()
         self.style_combo.addItems(self.STYLES)
+        self.style_combo.setToolTip("Different styles for varied training data")
         style_layout.addWidget(self.style_combo, 1)
         controls_layout.addLayout(style_layout)
 
+        # Add spacing
+        controls_layout.addSpacing(8)
+
         # Dictionary controls
         dict_layout = QVBoxLayout()
+        dict_layout.setSpacing(6)
         self.use_dict_checkbox = QCheckBox("Use Custom Dictionary")
+        self.use_dict_checkbox.setToolTip("Include specific words in the generated text")
         self.use_dict_checkbox.toggled.connect(self.toggle_dictionary)
         dict_layout.addWidget(self.use_dict_checkbox)
 
         dict_input_layout = QHBoxLayout()
-        dict_input_layout.addWidget(QLabel("Words (comma-separated):"))
+        dict_words_label = QLabel("Words (comma-separated):")
+        dict_words_label.setToolTip("Enter up to 50 words to include")
+        dict_input_layout.addWidget(dict_words_label)
         self.dict_input = QLineEdit()
         self.dict_input.setPlaceholderText("e.g., neural, synthesis, phoneme")
+        self.dict_input.setToolTip("Technical terms or specific vocabulary you want to practice")
         self.dict_input.setEnabled(False)
         dict_input_layout.addWidget(self.dict_input)
         dict_layout.addLayout(dict_input_layout)
 
         controls_layout.addLayout(dict_layout)
 
+        # Add spacing
+        controls_layout.addSpacing(10)
+
         # Generation buttons
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
 
         self.generate_btn = QPushButton("🔄 Generate Text")
+        self.generate_btn.setToolTip("Generate new text based on settings (Ctrl+G)")
         self.generate_btn.clicked.connect(self.generate_text)
-        self.generate_btn.setStyleSheet("QPushButton { font-size: 14px; padding: 10px; }")
+        self.generate_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                padding: 12px 20px;
+                background-color: #2196F3;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
         button_layout.addWidget(self.generate_btn)
 
         self.regenerate_btn = QPushButton("♻ Regenerate")
+        self.regenerate_btn.setToolTip("Generate new text with same settings")
         self.regenerate_btn.clicked.connect(self.generate_text)
         self.regenerate_btn.setEnabled(False)
+        self.regenerate_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 14px;
+                padding: 12px 20px;
+                background-color: #00BCD4;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0097A7;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
         button_layout.addWidget(self.regenerate_btn)
 
         controls_layout.addLayout(button_layout)
@@ -130,14 +188,19 @@ class TextPanel(QWidget):
         # Text display group
         text_group = QGroupBox("Generated Text")
         text_layout = QVBoxLayout()
+        text_layout.setSpacing(8)
 
         self.text_edit = QTextEdit()
         self.text_edit.setPlaceholderText("Generated text will appear here. You can edit it before saving.")
+        self.text_edit.setToolTip("Edit the text as needed before recording")
+        # Increase minimum height for better readability
+        self.text_edit.setMinimumHeight(200)
         text_layout.addWidget(self.text_edit)
 
         # Character/word count
         self.count_label = QLabel("Characters: 0 | Words: 0")
         self.count_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.count_label.setStyleSheet("QLabel { color: #666666; font-size: 10pt; }")
         text_layout.addWidget(self.count_label)
 
         # Connect text changes to update count
