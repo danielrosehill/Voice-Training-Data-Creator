@@ -12,21 +12,24 @@ class RecordingPanel(QWidget):
     # Signals
     recording_finished = pyqtSignal(np.ndarray)  # Emitted when recording stops
 
-    def __init__(self, audio_recorder, device_manager):
+    def __init__(self, audio_recorder, device_manager, config_manager):
         """Initialize recording panel.
 
         Args:
             audio_recorder: AudioRecorder instance.
             device_manager: DeviceManager instance.
+            config_manager: ConfigManager instance.
         """
         super().__init__()
         self.recorder = audio_recorder
         self.device_manager = device_manager
+        self.config = config_manager
         self.current_audio = None
         self.recording_time = 0.0
 
         self.init_ui()
         self.setup_timer()
+        self.load_preferred_device()
 
     def init_ui(self):
         """Initialize UI components."""
@@ -212,7 +215,22 @@ class RecordingPanel(QWidget):
         """Handle device selection change."""
         if index >= 0:
             device_idx = self.device_combo.itemData(index)
+            device_name = self.device_combo.itemText(index)
             self.device_manager.set_device(device_idx)
+
+            # Save the preference
+            self.config.set_preferred_device(device_idx, device_name)
+
+    def load_preferred_device(self):
+        """Load and set the preferred device from config."""
+        preferred = self.config.get_preferred_device()
+        if preferred:
+            device_idx = preferred["device_index"]
+            # Find the device in the combo box and select it
+            for i in range(self.device_combo.count()):
+                if self.device_combo.itemData(i) == device_idx:
+                    self.device_combo.setCurrentIndex(i)
+                    break
 
     def test_microphone(self):
         """Test the selected microphone."""

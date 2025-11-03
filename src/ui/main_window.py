@@ -1,7 +1,7 @@
 """Main application window."""
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                               QPushButton, QLabel, QMessageBox, QGroupBox,
-                              QStatusBar, QMenuBar, QFileDialog, QTabWidget)
+                              QStatusBar, QMenuBar, QFileDialog, QTabWidget, QCheckBox)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut
 from pathlib import Path
@@ -79,17 +79,51 @@ class MainWindow(QMainWindow):
         recording_layout = QVBoxLayout()
         recording_layout.setSpacing(15)
 
+        # Save button (at top for visibility)
+        self.save_btn = QPushButton("💾 Save Sample (Ctrl+Enter)")
+        self.save_btn.setToolTip("Save the current recording and text as a training sample")
+        self.save_btn.clicked.connect(self.save_sample)
+        self.save_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;
+                padding: 18px;
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        self.save_btn.setEnabled(False)
+        recording_layout.addWidget(self.save_btn)
+
+        # Autogenerate checkbox
+        self.autogenerate_checkbox = QCheckBox("Auto-generate next sample after saving")
+        self.autogenerate_checkbox.setToolTip("Automatically generate new text with same settings after saving a sample")
+        self.autogenerate_checkbox.setChecked(self.config.get_autogenerate_next())
+        self.autogenerate_checkbox.toggled.connect(self.on_autogenerate_toggled)
+        self.autogenerate_checkbox.setStyleSheet("QCheckBox { font-size: 12pt; padding: 5px; }")
+        recording_layout.addWidget(self.autogenerate_checkbox)
+
         # Main content - vertical stack for full-width text display
         content_layout = QVBoxLayout()
         content_layout.setSpacing(15)
 
+        # Bottom - Recording (create first so we can pass to text panel)
+        self.recording_panel = RecordingPanel(self.recorder, self.device_manager, self.config)
+        self.recording_panel.recording_finished.connect(self.on_recording_finished)
+
         # Top - Text generation (gets more space for readability)
-        self.text_panel = TextPanel(self.text_gen)
+        self.text_panel = TextPanel(self.text_gen, self.recording_panel)
         content_layout.addWidget(self.text_panel, 2)
 
-        # Bottom - Recording
-        self.recording_panel = RecordingPanel(self.recorder, self.device_manager)
-        self.recording_panel.recording_finished.connect(self.on_recording_finished)
+        # Add recording panel
         content_layout.addWidget(self.recording_panel, 1)
 
         recording_layout.addLayout(content_layout, 1)
@@ -119,30 +153,6 @@ class MainWindow(QMainWindow):
 
         stats_group.setLayout(stats_layout)
         recording_layout.addWidget(stats_group)
-
-        # Save button
-        self.save_btn = QPushButton("💾 Save Sample (Ctrl+Enter)")
-        self.save_btn.setToolTip("Save the current recording and text as a training sample")
-        self.save_btn.clicked.connect(self.save_sample)
-        self.save_btn.setStyleSheet("""
-            QPushButton {
-                font-size: 16px;
-                padding: 18px;
-                background-color: #4CAF50;
-                color: white;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-            QPushButton:disabled {
-                background-color: #cccccc;
-                color: #666666;
-            }
-        """)
-        self.save_btn.setEnabled(False)
-        recording_layout.addWidget(self.save_btn)
 
         recording_tab.setLayout(recording_layout)
         self.tabs.addTab(recording_tab, "📝 Record & Generate")
@@ -269,12 +279,13 @@ class MainWindow(QMainWindow):
                 "The audio signal may be clipping. Consider reducing your microphone volume."
             )
 
-        if Validators.detect_long_silence(audio_data, sample_rate=self.recorder.sample_rate):
-            QMessageBox.warning(
-                self,
-                "Long Silence Detected",
-                "The recording contains a long period of silence. You may want to re-record."
-            )
+    def on_autogenerate_toggled(self, checked: bool):
+        """Handle autogenerate checkbox toggle.
+
+        Args:
+            checked: Whether the checkbox is checked.
+        """
+        self.config.set_autogenerate_next(checked)
 
     def check_save_enabled(self):
         """Check if save button should be enabled."""
@@ -363,6 +374,10 @@ class MainWindow(QMainWindow):
             )
 
             self.status_bar.showMessage(f"Sample #{sample_num} saved", 3000)
+
+            # Auto-generate next sample if enabled
+            if self.config.get_autogenerate_next():
+                self.text_panel.generate_text()
         else:
             QMessageBox.critical(
                 self,

@@ -1,29 +1,37 @@
 """Text viewer dialog for expanded text viewing."""
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                              QTextEdit, QLabel)
-from PyQt6.QtCore import Qt
+                              QTextEdit, QLabel, QGroupBox)
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QKeySequence, QShortcut
 
 
 class TextViewerDialog(QDialog):
     """Modal dialog for viewing and editing text in expanded view."""
 
-    def __init__(self, text: str, parent=None):
+    def __init__(self, text: str, recording_panel=None, parent=None):
         """Initialize text viewer dialog.
 
         Args:
             text: The text to display.
+            recording_panel: Optional RecordingPanel for controlling recording from dialog.
             parent: Parent widget.
         """
         super().__init__(parent)
         self.setWindowTitle("Text Viewer - Edit and Review")
         self.setModal(True)
+        self.recording_panel = recording_panel
 
         # Make the dialog larger for better readability
         self.resize(900, 700)
 
         self.init_ui(text)
         self.setup_shortcuts()
+
+        # Setup timer to update recording status
+        if self.recording_panel:
+            self.status_timer = QTimer()
+            self.status_timer.timeout.connect(self.update_recording_status)
+            self.status_timer.start(100)  # Update every 100ms
 
     def init_ui(self, text: str):
         """Initialize UI components.
@@ -36,7 +44,7 @@ class TextViewerDialog(QDialog):
 
         # Instructions
         instructions = QLabel(
-            "Use this expanded view to review and edit your text before recording. "
+            "Use this expanded view to review and edit your text before/during recording. "
             "Changes will be reflected in the main window."
         )
         instructions.setWordWrap(True)
@@ -49,6 +57,75 @@ class TextViewerDialog(QDialog):
             }
         """)
         layout.addWidget(instructions)
+
+        # Recording controls (if recording panel provided)
+        if self.recording_panel:
+            rec_group = QGroupBox("Recording Controls")
+            rec_layout = QVBoxLayout()
+            rec_layout.setSpacing(10)
+
+            # Status label
+            self.rec_status_label = QLabel("Ready to record")
+            self.rec_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            status_font = QFont()
+            status_font.setPointSize(11)
+            status_font.setBold(True)
+            self.rec_status_label.setFont(status_font)
+            rec_layout.addWidget(self.rec_status_label)
+
+            # Recording buttons
+            rec_button_layout = QHBoxLayout()
+            rec_button_layout.setSpacing(10)
+
+            self.rec_pause_btn = QPushButton("⏸ Pause")
+            self.rec_pause_btn.setToolTip("Pause/resume recording")
+            self.rec_pause_btn.clicked.connect(self.toggle_pause_recording)
+            self.rec_pause_btn.setEnabled(False)
+            self.rec_pause_btn.setStyleSheet("""
+                QPushButton {
+                    font-size: 13px;
+                    padding: 10px 16px;
+                    background-color: #FF9800;
+                    color: white;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #F57C00;
+                }
+                QPushButton:disabled {
+                    background-color: #cccccc;
+                    color: #666666;
+                }
+            """)
+            rec_button_layout.addWidget(self.rec_pause_btn)
+
+            self.rec_stop_btn = QPushButton("⏹ Stop")
+            self.rec_stop_btn.setToolTip("Stop recording")
+            self.rec_stop_btn.clicked.connect(self.stop_recording)
+            self.rec_stop_btn.setEnabled(False)
+            self.rec_stop_btn.setStyleSheet("""
+                QPushButton {
+                    font-size: 13px;
+                    padding: 10px 16px;
+                    background-color: #757575;
+                    color: white;
+                    border-radius: 5px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #616161;
+                }
+                QPushButton:disabled {
+                    background-color: #cccccc;
+                    color: #666666;
+                }
+            """)
+            rec_button_layout.addWidget(self.rec_stop_btn)
+
+            rec_layout.addLayout(rec_button_layout)
+            rec_group.setLayout(rec_layout)
+            layout.addWidget(rec_group)
 
         # Text editor
         self.text_edit = QTextEdit()
@@ -244,3 +321,45 @@ class TextViewerDialog(QDialog):
             font.setPointSize(new_size)
             self.text_edit.setFont(font)
             self.font_size_label.setText(f"{new_size}pt")
+
+    def update_recording_status(self):
+        """Update recording status and button states."""
+        if not self.recording_panel:
+            return
+
+        recorder = self.recording_panel.recorder
+
+        if recorder.is_recording:
+            self.rec_pause_btn.setEnabled(True)
+            self.rec_stop_btn.setEnabled(True)
+
+            if recorder.is_paused:
+                self.rec_status_label.setText("⏸ Recording Paused")
+                self.rec_status_label.setStyleSheet("QLabel { color: orange; font-weight: bold; }")
+                self.rec_pause_btn.setText("▶ Resume")
+            else:
+                self.rec_status_label.setText("🔴 Recording...")
+                self.rec_status_label.setStyleSheet("QLabel { color: red; font-weight: bold; }")
+                self.rec_pause_btn.setText("⏸ Pause")
+        else:
+            self.rec_pause_btn.setEnabled(False)
+            self.rec_stop_btn.setEnabled(False)
+            self.rec_status_label.setText("Ready to record")
+            self.rec_status_label.setStyleSheet("")
+
+    def toggle_pause_recording(self):
+        """Toggle pause/resume recording."""
+        if self.recording_panel:
+            self.recording_panel.toggle_pause()
+
+    def stop_recording(self):
+        """Stop recording."""
+        if self.recording_panel:
+            self.recording_panel.stop_recording()
+
+    def closeEvent(self, event):
+        """Handle dialog close event."""
+        # Stop the status timer
+        if self.recording_panel and hasattr(self, 'status_timer'):
+            self.status_timer.stop()
+        super().closeEvent(event)

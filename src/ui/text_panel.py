@@ -45,14 +45,16 @@ class TextPanel(QWidget):
         "Prose"
     ]
 
-    def __init__(self, text_generator):
+    def __init__(self, text_generator, recording_panel=None):
         """Initialize text panel.
 
         Args:
             text_generator: TextGenerator instance.
+            recording_panel: Optional RecordingPanel instance for dialog controls.
         """
         super().__init__()
         self.generator = text_generator
+        self.recording_panel = recording_panel
         self.worker: Optional[TextGenerationWorker] = None
         self.default_font_size = 14  # Start with larger default font
         self.init_ui()
@@ -480,7 +482,7 @@ class TextPanel(QWidget):
         """Open the text viewer dialog for expanded editing."""
         current_text = self.text_edit.toPlainText()
 
-        dialog = TextViewerDialog(current_text, self)
+        dialog = TextViewerDialog(current_text, self.recording_panel, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             # Save the edited text back to the main text area
             edited_text = dialog.get_text()

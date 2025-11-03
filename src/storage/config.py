@@ -20,7 +20,10 @@ class ConfigManager:
         "default_duration": 3.0,
         "default_style": "General Purpose",
         "openai_model": "gpt-4o-mini",
-        "theme": "light"
+        "theme": "light",
+        "preferred_device_index": None,
+        "preferred_device_name": None,
+        "autogenerate_next": False
     }
 
     def __init__(self):
@@ -143,3 +146,45 @@ class ConfigManager:
     def set_openai_model(self, model: str):
         """Set OpenAI model."""
         self.set("openai_model", model)
+
+    def get_preferred_device(self) -> Optional[Dict[str, Any]]:
+        """Get preferred microphone device.
+
+        Returns:
+            Dictionary with device_index and device_name, or None if not set.
+        """
+        device_index = self.get("preferred_device_index")
+        device_name = self.get("preferred_device_name")
+
+        if device_index is not None:
+            return {
+                "device_index": device_index,
+                "device_name": device_name
+            }
+        return None
+
+    def set_preferred_device(self, device_index: int, device_name: str):
+        """Set preferred microphone device.
+
+        Args:
+            device_index: Index of the preferred device.
+            device_name: Name of the preferred device.
+        """
+        self.set("preferred_device_index", device_index)
+        self.set("preferred_device_name", device_name)
+
+    def get_autogenerate_next(self) -> bool:
+        """Get autogenerate next sample setting.
+
+        Returns:
+            True if autogenerate is enabled, False otherwise.
+        """
+        return self.get("autogenerate_next", self.DEFAULTS["autogenerate_next"])
+
+    def set_autogenerate_next(self, enabled: bool):
+        """Set autogenerate next sample setting.
+
+        Args:
+            enabled: Whether to autogenerate next sample after saving.
+        """
+        self.set("autogenerate_next", enabled)
