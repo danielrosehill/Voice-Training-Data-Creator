@@ -1,21 +1,19 @@
 # Voice Training Data Creator
 
 
-![alt text](screenshots/v4/1.png)
+![alt text](screenshots/v1_0_14/1.png)
 
 A desktop GUI application for creating voice training datasets with AI-powered synthetic text generation. Supports voice cloning, TTS model training, and STT fine-tuning workflows.
 
 ## Screenshots
 
-![alt text](screenshots/v4/1.png)
+![alt text](screenshots/v1_0_14/1.png)
 
-![alt text](screenshots/v4/2.png)
+![alt text](screenshots/v1_0_14/2.png)
 
-![alt text](screenshots/v4/3.png)
+![alt text](screenshots/v1_0_14/3.png)
 
-![alt text](screenshots/v4/4.png)
-
-![alt text](screenshots/v4/5.png)
+![alt text](screenshots/v1_0_14/4.png)
  
 ## Dataset System
 
