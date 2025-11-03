@@ -44,10 +44,47 @@ A desktop GUI application for creating high-quality voice training datasets with
 
 ## Installation
 
-### Prerequisites
+### Option 1: Install .deb Package (Recommended)
 
-- Python 3.12 or higher
+The easiest way to install on Ubuntu/Debian systems:
+
+1. **Download or build the package**:
+   ```bash
+   # Option A: Build from source
+   git clone https://github.com/danielrosehill/Voice-Training-Data-Creator.git
+   cd Voice-Training-Data-Creator
+   ./build-deb.sh
+
+   # Option B: Download release (when available)
+   # Download voice-training-data-creator_1.0.0_all.deb from releases
+   ```
+
+2. **Install the package**:
+   ```bash
+   sudo dpkg -i voice-training-data-creator_1.0.0_all.deb
+   sudo apt-get install -f  # Install dependencies
+   ```
+
+3. **Validate installation** (optional):
+   ```bash
+   ./validate-package.sh
+   ```
+
+4. **Launch the application**:
+   - From application menu: Search for "Voice Training Data Creator"
+   - From terminal: `voice-training-data-creator`
+
+See [INSTALL.md](INSTALL.md) for detailed installation instructions and troubleshooting.
+
+### Option 2: Run from Source
+
+For development or if you prefer not to install system-wide:
+
+#### Prerequisites
+
+- Python 3.10 or higher
 - Ubuntu Desktop (tested on Ubuntu 25.04 with KDE)
+- System packages: `python3-pyqt6`, `libportaudio2`
 - OpenAI API key (for text generation)
 
 ### Setup
