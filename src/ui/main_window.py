@@ -79,18 +79,18 @@ class MainWindow(QMainWindow):
         recording_layout = QVBoxLayout()
         recording_layout.setSpacing(15)
 
-        # Main content - horizontal split
-        content_layout = QHBoxLayout()
+        # Main content - vertical stack for full-width text display
+        content_layout = QVBoxLayout()
         content_layout.setSpacing(15)
 
-        # Left side - Recording
+        # Top - Text generation (gets more space for readability)
+        self.text_panel = TextPanel(self.text_gen)
+        content_layout.addWidget(self.text_panel, 2)
+
+        # Bottom - Recording
         self.recording_panel = RecordingPanel(self.recorder, self.device_manager)
         self.recording_panel.recording_finished.connect(self.on_recording_finished)
         content_layout.addWidget(self.recording_panel, 1)
-
-        # Right side - Text generation
-        self.text_panel = TextPanel(self.text_gen)
-        content_layout.addWidget(self.text_panel, 1)
 
         recording_layout.addLayout(content_layout, 1)
 

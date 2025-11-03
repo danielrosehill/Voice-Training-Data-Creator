@@ -53,6 +53,7 @@ class TextPanel(QWidget):
         super().__init__()
         self.generator = text_generator
         self.worker: Optional[TextGenerationWorker] = None
+        self.default_font_size = 14  # Start with larger default font
         self.init_ui()
 
     def init_ui(self):
@@ -194,14 +195,72 @@ class TextPanel(QWidget):
         self.text_edit.setPlaceholderText("Generated text will appear here. You can edit it before saving.")
         self.text_edit.setToolTip("Edit the text as needed before recording")
         # Increase minimum height for better readability
-        self.text_edit.setMinimumHeight(200)
+        self.text_edit.setMinimumHeight(250)
         text_layout.addWidget(self.text_edit)
+
+        # Font size controls and character/word count
+        controls_row = QHBoxLayout()
+        controls_row.setSpacing(10)
+
+        # Font size controls
+        font_controls = QHBoxLayout()
+        font_controls.setSpacing(5)
+
+        font_label = QLabel("Text Size:")
+        font_label.setStyleSheet("QLabel { color: #666666; font-size: 10pt; }")
+        font_controls.addWidget(font_label)
+
+        self.font_smaller_btn = QPushButton("A-")
+        self.font_smaller_btn.setToolTip("Decrease text size")
+        self.font_smaller_btn.setMaximumWidth(50)
+        self.font_smaller_btn.clicked.connect(self.decrease_font_size)
+        self.font_smaller_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 12px;
+                padding: 4px 8px;
+                background-color: #f5f5f5;
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        font_controls.addWidget(self.font_smaller_btn)
+
+        self.font_size_label = QLabel(f"{self.default_font_size}pt")
+        self.font_size_label.setStyleSheet("QLabel { color: #666666; font-size: 10pt; min-width: 35px; }")
+        self.font_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font_controls.addWidget(self.font_size_label)
+
+        self.font_bigger_btn = QPushButton("A+")
+        self.font_bigger_btn.setToolTip("Increase text size")
+        self.font_bigger_btn.setMaximumWidth(50)
+        self.font_bigger_btn.clicked.connect(self.increase_font_size)
+        self.font_bigger_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 12px;
+                padding: 4px 8px;
+                background-color: #f5f5f5;
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        font_controls.addWidget(self.font_bigger_btn)
+
+        controls_row.addLayout(font_controls)
+        controls_row.addStretch()
 
         # Character/word count
         self.count_label = QLabel("Characters: 0 | Words: 0")
         self.count_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.count_label.setStyleSheet("QLabel { color: #666666; font-size: 10pt; }")
-        text_layout.addWidget(self.count_label)
+        controls_row.addWidget(self.count_label)
+
+        text_layout.addLayout(controls_row)
 
         # Connect text changes to update count
         self.text_edit.textChanged.connect(self.update_counts)
@@ -210,6 +269,9 @@ class TextPanel(QWidget):
         layout.addWidget(text_group, 1)  # Give more space to text display
 
         self.setLayout(layout)
+
+        # Set initial font size after all widgets are created
+        self.update_text_font()
 
     def toggle_dictionary(self, checked: bool):
         """Toggle dictionary input.
@@ -329,3 +391,22 @@ class TextPanel(QWidget):
             text: Text to set.
         """
         self.text_edit.setPlainText(text)
+
+    def update_text_font(self):
+        """Update the text edit font size."""
+        font = self.text_edit.font()
+        font.setPointSize(self.default_font_size)
+        self.text_edit.setFont(font)
+        self.font_size_label.setText(f"{self.default_font_size}pt")
+
+    def increase_font_size(self):
+        """Increase the text font size."""
+        if self.default_font_size < 32:  # Maximum font size
+            self.default_font_size += 2
+            self.update_text_font()
+
+    def decrease_font_size(self):
+        """Decrease the text font size."""
+        if self.default_font_size > 8:  # Minimum font size
+            self.default_font_size -= 2
+            self.update_text_font()
