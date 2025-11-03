@@ -2,18 +2,30 @@
 
 ![alt text](screenshots/1.png)
 
-A desktop GUI application for creating high-quality voice training datasets with AI-powered synthetic text generation. Perfect for voice cloning, TTS model training, and STT fine-tuning projects.
+A desktop GUI application for creating voice training datasets with AI-powered synthetic text generation. Supports voice cloning, TTS model training, and STT fine-tuning workflows.
+
+## Screenshots
+
+![alt text](screenshots/2.png)
+
+Each sample is saved as a numbered folder (starting from 001) with:
+
+- Recording (as .wav) 
+- Text as .txt, incorporating user edits to scrub AI messages from source of truth 
+- JSON for metadata
+
+![alt text](screenshots/3.png)
 
 ## Features
 
-### 🎙️ Professional Audio Recording
+### Audio Recording
 - High-quality WAV recording (44.1kHz/48kHz, 16-bit)
 - Microphone selection and testing
 - Real-time audio level monitoring
 - Pause/resume functionality
 - Clipping and silence detection
 
-### 🤖 AI-Powered Text Generation
+### Text Generation
 - Synthetic text generation using OpenAI GPT models
 - Multiple style options:
   - General Purpose
@@ -25,20 +37,20 @@ A desktop GUI application for creating high-quality voice training datasets with
 - Configurable duration and speaking rate (WPM)
 - Post-generation text editing
 
-### 💾 Smart Sample Management
+### Sample Management
 - Organized directory structure
 - Automatic sample numbering
 - Metadata tracking (generation parameters, timestamps)
 - Session statistics
 - Total duration estimation
 
-### ⚙️ Configuration & Settings
+### Configuration and Settings
 - Secure API key storage (system keyring)
 - Configurable audio quality settings
 - Multiple OpenAI model support
 - Persistent base path configuration
 
-### ✨ Quality Assurance
+### Quality Assurance
 - Audio validation (silence, clipping detection)
 - Text validation
 - Disk space checking
@@ -48,7 +60,7 @@ A desktop GUI application for creating high-quality voice training datasets with
 
 ### Option 1: Install .deb Package (Recommended)
 
-The easiest way to install on Ubuntu/Debian systems:
+Standard installation method for Ubuntu/Debian systems:
 
 1. **Download or build the package**:
    ```bash
