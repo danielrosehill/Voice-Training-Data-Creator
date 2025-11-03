@@ -72,7 +72,7 @@ class TextGenerator:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a helpful assistant that generates high-quality text for voice training purposes. Generate only the requested text without any meta-commentary or explanations."
+                        "content": "You are a helpful assistant that generates high-quality, DIVERSE text for voice training purposes. Each generation should explore different perspectives, scenarios, and vocabulary within the given topic. Generate only the requested text without any meta-commentary or explanations."
                     },
                     {
                         "role": "user",

@@ -1,5 +1,6 @@
 """Prompt building for text generation."""
 from typing import Optional, List
+import random
 
 
 class PromptBuilder:
@@ -12,6 +13,117 @@ class PromptBuilder:
         "Technical": "professional and technical language with industry terminology",
         "Prose": "literary, narrative style with descriptive and flowing language"
     }
+
+    # Expanded topic list for maximum variability
+    RANDOM_TOPICS = [
+        # Technology & Innovation
+        "artificial intelligence and machine learning",
+        "software development and programming",
+        "cybersecurity and data privacy",
+        "emerging technologies and future trends",
+        "digital transformation",
+        "robotics and automation",
+        "virtual reality and augmented reality",
+        "blockchain and cryptocurrency",
+        "quantum computing",
+        "Internet of Things and smart devices",
+
+        # Science & Nature
+        "climate change and environmental conservation",
+        "space exploration and astronomy",
+        "biology and human health",
+        "oceanography and marine life",
+        "renewable energy and sustainability",
+        "wildlife and ecosystems",
+        "geology and natural phenomena",
+        "physics and the universe",
+        "chemistry in everyday life",
+        "genetics and biotechnology",
+
+        # Society & Culture
+        "history and historical events",
+        "art and artistic movements",
+        "music and musical traditions",
+        "literature and storytelling",
+        "philosophy and ethics",
+        "languages and linguistics",
+        "architecture and urban design",
+        "fashion and design trends",
+        "cultural traditions and customs",
+        "social movements and change",
+
+        # Daily Life & Personal
+        "personal productivity and organization",
+        "mindfulness and mental wellness",
+        "fitness and physical health",
+        "nutrition and cooking",
+        "home improvement and DIY projects",
+        "gardening and plant care",
+        "pets and animal companionship",
+        "parenting and family life",
+        "relationships and communication",
+        "hobbies and creative pursuits",
+
+        # Professional & Business
+        "entrepreneurship and startups",
+        "leadership and management",
+        "marketing and branding",
+        "finance and investing",
+        "career development and skills",
+        "remote work and digital nomad lifestyle",
+        "business strategy and innovation",
+        "project management",
+        "sales and customer service",
+        "human resources and workplace culture",
+
+        # Travel & Geography
+        "international travel destinations",
+        "local tourism and hidden gems",
+        "cultural immersion experiences",
+        "adventure travel and outdoor activities",
+        "food tourism and culinary exploration",
+        "sustainable and eco-tourism",
+        "historical landmarks and monuments",
+        "urban exploration",
+        "road trips and scenic routes",
+        "travel planning and logistics",
+
+        # Entertainment & Media
+        "film and cinema",
+        "television and streaming content",
+        "gaming and esports",
+        "podcasts and audio content",
+        "social media and digital culture",
+        "theater and performing arts",
+        "photography and visual arts",
+        "comedy and humor",
+        "sports and athletics",
+        "books and reading",
+
+        # Education & Learning
+        "online education and e-learning",
+        "study techniques and memory",
+        "scientific research methods",
+        "critical thinking and problem solving",
+        "teaching and pedagogy",
+        "childhood development and learning",
+        "vocational training and skills",
+        "language learning",
+        "educational technology",
+        "lifelong learning and personal growth",
+
+        # Miscellaneous
+        "urban legends and folklore",
+        "mysteries and unexplained phenomena",
+        "psychology and human behavior",
+        "economics and global markets",
+        "politics and governance",
+        "law and legal systems",
+        "transportation and mobility",
+        "community building and volunteering",
+        "meditation and spirituality",
+        "disaster preparedness and survival skills"
+    ]
 
     def __init__(self):
         """Initialize prompt builder."""
@@ -44,12 +156,18 @@ class PromptBuilder:
             self.STYLE_DESCRIPTIONS["General Purpose"]
         )
 
+        # Select a random topic for variety
+        random_topic = random.choice(self.RANDOM_TOPICS)
+
         # Build base prompt
         prompt_parts = [
             f"Generate approximately {word_count} words ({duration_minutes} minutes at {wpm} WPM) of {style_desc}.",
             "",
+            f"Topic focus: {random_topic}",
+            "",
             "Requirements:",
             f"- Write in a {style.lower()} style",
+            f"- Focus the content around the topic: {random_topic}",
             "- Generate ONLY the text content without any meta-commentary, introduction, or explanation",
             "- Make the text natural and suitable for voice recording",
             "- Avoid special formatting, markdown, or unusual characters",
