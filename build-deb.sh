@@ -4,9 +4,10 @@ set -e
 # Voice Training Data Creator - Debian Package Builder
 # This script creates a .deb package for Ubuntu/Debian systems
 
-VERSION="1.0.0"
 PACKAGE_NAME="voice-training-data-creator"
 BUILD_DIR="debian"
+# Read version from control file
+VERSION=$(grep "^Version:" "$BUILD_DIR/DEBIAN/control" | awk '{print $2}')
 DEB_FILE="${PACKAGE_NAME}_${VERSION}_all.deb"
 
 echo "========================================="

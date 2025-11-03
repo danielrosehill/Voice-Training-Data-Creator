@@ -23,7 +23,8 @@ class ConfigManager:
         "theme": "light",
         "preferred_device_index": None,
         "preferred_device_name": None,
-        "autogenerate_next": False
+        "autogenerate_next": False,
+        "goal_duration_minutes": 60.0
     }
 
     def __init__(self):
@@ -188,3 +189,19 @@ class ConfigManager:
             enabled: Whether to autogenerate next sample after saving.
         """
         self.set("autogenerate_next", enabled)
+
+    def get_goal_duration(self) -> float:
+        """Get training data goal duration in minutes.
+
+        Returns:
+            Goal duration in minutes.
+        """
+        return self.get("goal_duration_minutes", self.DEFAULTS["goal_duration_minutes"])
+
+    def set_goal_duration(self, minutes: float):
+        """Set training data goal duration in minutes.
+
+        Args:
+            minutes: Goal duration in minutes.
+        """
+        self.set("goal_duration_minutes", minutes)
