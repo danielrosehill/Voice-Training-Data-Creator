@@ -28,15 +28,35 @@ class VoiceTrainingApp:
         """
         self.page = page
         self.page.title = "Voice Training Data Creator"
-        self.page.window_width = 1200
-        self.page.window_height = 850
-        self.page.padding = 20
+        self.page.window_width = 1280
+        self.page.window_height = 900
+        self.page.padding = 24
         self.page.theme_mode = ft.ThemeMode.LIGHT
-        # Simple theme for a fresher look
+
+        # Professional color theme
         try:
-            self.page.theme = ft.Theme()
+            self.page.theme = ft.Theme(
+                color_scheme_seed=COLORS.BLUE_700,
+                use_material3=True,
+            )
         except Exception:
             pass
+
+        # Custom color palette for professional look
+        self.colors = {
+            'primary': COLORS.BLUE_700,
+            'primary_light': COLORS.BLUE_400,
+            'secondary': COLORS.INDIGO_700,
+            'accent': COLORS.CYAN_600,
+            'success': COLORS.GREEN_600,
+            'warning': COLORS.ORANGE_600,
+            'error': COLORS.RED_600,
+            'text_primary': COLORS.GREY_900,
+            'text_secondary': COLORS.GREY_600,
+            'background': COLORS.GREY_50,
+            'surface': COLORS.WHITE,
+            'border': COLORS.GREY_300,
+        }
 
         # Initialize core components
         self.config = ConfigManager()
@@ -65,6 +85,10 @@ class VoiceTrainingApp:
         self._record_timer_thread = None
         self._record_timer_stop = threading.Event()
 
+        # Audio playback state
+        self.audio_player = None
+        self.current_playing_sample = None
+
         # Build UI
         self.build_ui()
 
@@ -74,19 +98,25 @@ class VoiceTrainingApp:
 
     def build_ui(self):
         """Build the main UI."""
-        # Title
-        title = ft.Text(
-            "Voice Training Data Creator",
-            size=28,
-            weight=ft.FontWeight.BOLD,
-            color=COLORS.BLUE_700,
-            text_align=ft.TextAlign.CENTER,
+        # Title with better styling
+        title = ft.Container(
+            content=ft.Text(
+                "Voice Training Data Creator",
+                size=32,
+                weight=ft.FontWeight.BOLD,
+                color=self.colors['primary'],
+                text_align=ft.TextAlign.CENTER,
+            ),
+            padding=ft.padding.only(bottom=16),
         )
 
-        # Create tabs
+        # Create tabs with better styling
         self.tabs = ft.Tabs(
             selected_index=0,
             animation_duration=300,
+            label_color=self.colors['primary'],
+            indicator_color=self.colors['primary'],
+            divider_color=self.colors['border'],
             tabs=[
                 ft.Tab(
                     text="Record & Generate",
@@ -95,7 +125,7 @@ class VoiceTrainingApp:
                 ),
                 ft.Tab(
                     text="Dataset",
-                    icon=ICONS.DATASET,
+                    icon=ICONS.ANALYTICS,
                     content=self.build_dataset_tab(),
                 ),
                 ft.Tab(
@@ -112,52 +142,61 @@ class VoiceTrainingApp:
             expand=True,
         )
 
-        # Status bar
-        self.status_bar = ft.Text(
-            self.get_status_text(),
-            size=12,
-            color=COLORS.GREY_700,
+        # Status bar with better styling
+        self.status_bar = ft.Container(
+            content=ft.Text(
+                self.get_status_text(),
+                size=13,
+                color=self.colors['text_secondary'],
+            ),
+            padding=ft.padding.symmetric(vertical=8, horizontal=12),
+            bgcolor=self.colors['surface'],
+            border=ft.border.all(1, self.colors['border']),
+            border_radius=8,
         )
 
         # File/dir pickers (overlay components)
         self.dir_picker = ft.FilePicker(on_result=self.on_pick_directory)
         self.page.overlay.append(self.dir_picker)
 
-        # Main layout
+        # Main layout with better spacing
         self.page.add(
             ft.Column(
                 [
                     title,
-                    ft.Divider(height=20, color=COLORS.TRANSPARENT),
                     self.tabs,
-                    ft.Divider(height=10, color=COLORS.TRANSPARENT),
+                    ft.Container(height=12),
                     self.status_bar,
                 ],
                 expand=True,
-                spacing=10,
+                spacing=0,
             )
         )
 
-        # Menu bar
+        # Menu bar with better styling
         self.page.appbar = ft.AppBar(
-            title=ft.Text("Voice Training Data Creator"),
+            title=ft.Text("Voice Training Data Creator", size=18, weight=ft.FontWeight.W_600),
             center_title=False,
-            bgcolor=COLORS.SURFACE,
+            bgcolor=self.colors['primary'],
+            color=COLORS.WHITE,
             actions=[
                 ft.IconButton(
                     ICONS.SETTINGS,
-                    tooltip="Settings",
-                    on_click=lambda _: self.open_settings(),
+                    tooltip="Open Settings",
+                    on_click=lambda _: self._go_to_settings(),
+                    icon_color=COLORS.WHITE,
                 ),
                 ft.IconButton(
                     ICONS.BRIGHTNESS_6,
-                    tooltip="Toggle theme",
+                    tooltip="Toggle Light/Dark Theme",
                     on_click=lambda _: self.toggle_theme(),
+                    icon_color=COLORS.WHITE,
                 ),
                 ft.IconButton(
-                    ICONS.HELP,
-                    tooltip="About",
+                    ICONS.INFO,
+                    tooltip="About This App",
                     on_click=lambda _: self.show_about(),
+                    icon_color=COLORS.WHITE,
                 ),
             ],
         )
@@ -168,15 +207,21 @@ class VoiceTrainingApp:
         Returns:
             The tab content.
         """
-        # Save button
+        # Save button - prominent action
         self.save_btn = ft.ElevatedButton(
-            "💾 Save Sample",
+            "Save Sample",
             icon=ICONS.SAVE,
             on_click=self.save_sample,
             disabled=True,
-            bgcolor=COLORS.GREEN_700,
+            bgcolor=self.colors['success'],
             color=COLORS.WHITE,
-            height=60,
+            height=56,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation={"": 2, "hovered": 4, "disabled": 0},
+                padding=ft.padding.symmetric(horizontal=24, vertical=16),
+                text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
+            ),
         )
 
         # Auto-generate checkbox
@@ -223,6 +268,7 @@ class VoiceTrainingApp:
             value="3.0",
             width=200,
             keyboard_type=ft.KeyboardType.NUMBER,
+            tooltip="How long you want the generated text to take to read",
         )
 
         self.wpm_field = ft.TextField(
@@ -230,6 +276,7 @@ class VoiceTrainingApp:
             value="150",
             width=200,
             keyboard_type=ft.KeyboardType.NUMBER,
+            tooltip="Average speaking speed (120-180 is typical)",
         )
 
         self.style_dropdown = ft.Dropdown(
@@ -258,38 +305,63 @@ class VoiceTrainingApp:
             expand=True,
         )
 
-        # Generate buttons
+        # Generate buttons with consistent styling
         self.generate_btn = ft.ElevatedButton(
-            "🔄 Generate Text",
-            icon=ICONS.REFRESH,
+            "Generate Text",
+            icon=ICONS.AUTO_AWESOME,
             on_click=self.generate_text,
-            bgcolor=COLORS.BLUE_700,
+            bgcolor=self.colors['primary'],
             color=COLORS.WHITE,
+            tooltip="Generate new text using AI based on your parameters",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation={"": 2, "hovered": 4},
+                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+            ),
         )
 
         self.new_sample_btn = ft.ElevatedButton(
-            "➕ New Sample",
-            icon=ICONS.ADD_CIRCLE,
+            "New Sample",
+            icon=ICONS.ADD,
             on_click=self.new_sample,
             disabled=True,
-            bgcolor=COLORS.GREEN_700,
+            bgcolor=self.colors['success'],
             color=COLORS.WHITE,
+            tooltip="Clear everything and start a completely new sample",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation={"": 2, "hovered": 4, "disabled": 0},
+                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+            ),
         )
 
         self.regenerate_btn = ft.ElevatedButton(
-            "♻ Regenerate",
-            icon=ICONS.REPLAY,
+            "Regenerate",
+            icon=ICONS.REFRESH,
             on_click=self.generate_text,
             disabled=True,
-            bgcolor=COLORS.CYAN_700,
+            bgcolor=self.colors['accent'],
             color=COLORS.WHITE,
+            tooltip="Generate different text with the same parameters",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation={"": 2, "hovered": 4, "disabled": 0},
+                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+            ),
         )
 
         self.view_text_btn = ft.OutlinedButton(
-            "👁 View Text",
+            "View Text",
             icon=ICONS.VISIBILITY,
             on_click=lambda e: self.open_narration_view(),
             disabled=True,
+            tooltip="Open text in large, readable view for recording",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(2, self.colors['primary']),
+                color={"": self.colors['primary'], "disabled": self.colors['text_secondary']},
+                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+            ),
         )
 
         # Text display
@@ -308,19 +380,24 @@ class VoiceTrainingApp:
             content=ft.Container(
                 content=ft.Column(
                     [
-                        ft.Text("Text Generation", size=18, weight=ft.FontWeight.BOLD),
-                        ft.Row([self.duration_field, self.wpm_field, self.style_dropdown]),
+                        ft.Text("Text Generation", size=20, weight=ft.FontWeight.BOLD, color=self.colors['text_primary']),
+                        ft.Container(height=4),
+                        ft.Row([self.duration_field, self.wpm_field, self.style_dropdown], spacing=12),
+                        ft.Container(height=4),
                         self.use_dict_checkbox,
                         self.dict_input,
-                        ft.Row([self.generate_btn, self.new_sample_btn, self.regenerate_btn, self.view_text_btn], spacing=10),
-                        ft.Divider(),
+                        ft.Container(height=8),
+                        ft.Row([self.generate_btn, self.new_sample_btn, self.regenerate_btn, self.view_text_btn], spacing=12, wrap=True),
+                        ft.Divider(height=1, color=self.colors['border']),
                         self.text_edit,
                         self.char_count_label,
                     ],
-                    spacing=10,
+                    spacing=12,
                 ),
-                padding=15,
+                padding=20,
             ),
+            elevation=3,
+            surface_tint_color=self.colors['primary_light'],
         )
 
     def build_recording_panel(self):
@@ -358,88 +435,137 @@ class VoiceTrainingApp:
             "Test Mic",
             icon=ICONS.MIC_NONE,
             on_click=self.test_microphone,
+            tooltip="Test your microphone to verify it's working",
         )
 
-        # Status and duration
+        # Status and duration with dynamic coloring
         self.status_label = ft.Text(
             "Ready to record",
             size=16,
-            weight=ft.FontWeight.BOLD,
+            weight=ft.FontWeight.W_600,
             text_align=ft.TextAlign.CENTER,
+            color=self.colors['text_secondary'],
         )
 
         self.duration_label = ft.Text(
             "Duration: 00:00",
-            size=32,
+            size=36,
             weight=ft.FontWeight.BOLD,
-            color=COLORS.BLUE_700,
+            color=self.colors['primary'],
             text_align=ft.TextAlign.CENTER,
         )
 
-        # Recording buttons (only one visible at a time)
+        # Recording buttons with professional styling
         self.record_btn = ft.ElevatedButton(
-            "⏺ Record",
+            "Record",
             icon=ICONS.FIBER_MANUAL_RECORD,
             on_click=self.start_recording,
-            bgcolor=COLORS.RED_700,
+            bgcolor=self.colors['error'],
             color=COLORS.WHITE,
             expand=True,
             visible=True,
+            tooltip="Start recording your voice",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation={"": 2, "hovered": 4},
+                padding=ft.padding.symmetric(horizontal=20, vertical=16),
+                text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
+            ),
         )
 
         self.pause_btn = ft.ElevatedButton(
-            "⏸ Pause",
+            "Pause",
             icon=ICONS.PAUSE,
             on_click=self.toggle_pause,
-            bgcolor=COLORS.ORANGE_700,
+            bgcolor=self.colors['warning'],
             color=COLORS.WHITE,
             expand=True,
             visible=False,
+            tooltip="Pause/resume recording",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation={"": 2, "hovered": 4},
+                padding=ft.padding.symmetric(horizontal=20, vertical=16),
+                text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
+            ),
         )
 
         self.stop_btn = ft.ElevatedButton(
-            "⏹ Stop",
+            "Stop",
             icon=ICONS.STOP,
             on_click=self.stop_recording,
-            bgcolor=COLORS.GREY_700,
+            bgcolor=self.colors['text_secondary'],
             color=COLORS.WHITE,
             expand=True,
             visible=False,
+            tooltip="Stop recording and save the audio",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation={"": 2, "hovered": 4},
+                padding=ft.padding.symmetric(horizontal=20, vertical=16),
+                text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
+            ),
         )
 
         self.retake_btn = ft.ElevatedButton(
-            "🔄 Retake",
+            "Retake",
             icon=ICONS.REPLAY,
             on_click=self.retake_recording,
-            bgcolor=COLORS.ORANGE_700,
+            bgcolor=self.colors['warning'],
             color=COLORS.WHITE,
             expand=True,
             visible=False,
+            tooltip="Discard current recording and start over immediately",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                elevation={"": 2, "hovered": 4},
+                padding=ft.padding.symmetric(horizontal=20, vertical=16),
+                text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
+            ),
         )
 
         self.delete_btn = ft.OutlinedButton(
-            "🗑 Delete Recording",
+            "Delete Recording",
             icon=ICONS.DELETE,
             on_click=self.delete_recording,
             disabled=True,
             expand=True,
+            tooltip="Delete the current audio recording",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(2, self.colors['error']),
+                color={"": self.colors['error'], "disabled": self.colors['text_secondary']},
+                padding=ft.padding.symmetric(horizontal=20, vertical=12),
+            ),
         )
 
         return ft.Card(
             content=ft.Container(
                 content=ft.Column(
                     [
-                        ft.Text("Recording Controls", size=18, weight=ft.FontWeight.BOLD),
-                        ft.Row([self.device_dropdown, self.test_mic_btn]),
-                        self.status_label,
-                        self.duration_label,
-                        ft.Row([self.record_btn, self.pause_btn, self.stop_btn, self.retake_btn], spacing=10),
+                        ft.Text("Recording Controls", size=20, weight=ft.FontWeight.BOLD, color=self.colors['text_primary']),
+                        ft.Container(height=4),
+                        ft.Row([self.device_dropdown, self.test_mic_btn], spacing=12),
+                        ft.Container(height=8),
+                        ft.Container(
+                            content=ft.Column([
+                                self.status_label,
+                                self.duration_label,
+                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=8),
+                            bgcolor=self.colors['background'],
+                            border_radius=8,
+                            padding=16,
+                        ),
+                        ft.Container(height=4),
+                        ft.Row([self.record_btn, self.pause_btn, self.stop_btn, self.retake_btn], spacing=12),
                         self.delete_btn,
                     ],
-                    spacing=15,
+                    spacing=12,
                 ),
-                padding=15,
+                padding=20,
             ),
+            elevation=3,
+            surface_tint_color=self.colors['primary_light'],
         )
 
     def build_statistics_panel(self):
@@ -459,16 +585,20 @@ class VoiceTrainingApp:
             content=ft.Container(
                 content=ft.Column(
                     [
-                        ft.Text("Session Statistics", size=18, weight=ft.FontWeight.BOLD),
+                        ft.Text("Session Statistics", size=20, weight=ft.FontWeight.BOLD, color=self.colors['text_primary']),
+                        ft.Container(height=4),
                         ft.Row(
                             [self.session_label, self.total_label, self.duration_stats_label],
-                            spacing=30,
+                            spacing=40,
+                            wrap=True,
                         ),
                     ],
-                    spacing=10,
+                    spacing=12,
                 ),
-                padding=15,
+                padding=20,
             ),
+            elevation=3,
+            surface_tint_color=self.colors['primary_light'],
         )
 
     def build_dataset_tab(self):
@@ -875,7 +1005,7 @@ class VoiceTrainingApp:
             self.show_error_dialog("Error", str(ex))
         finally:
             self.generate_btn.disabled = False
-            self.generate_btn.text = "🔄 Generate Text"
+            self.generate_btn.text = "Generate Text"
             self.page.update()
 
     def new_sample(self, e):
@@ -987,14 +1117,16 @@ class VoiceTrainingApp:
             self.show_error_dialog("Recording Error", str(ex))
             return
 
-        # Update buttons visibility and status
+        # Update buttons visibility and status with visual feedback
         self.record_btn.visible = False
         self.pause_btn.visible = True
         self.stop_btn.visible = True
         self.retake_btn.visible = True
         self.delete_btn.disabled = True
-        self.status_label.value = "Recording..."
+        self.status_label.value = "● Recording..."
+        self.status_label.color = self.colors['error']
         self.duration_label.value = "Duration: 00:00"
+        self.duration_label.color = self.colors['error']
         self.page.update()
 
         # Start timer thread to update duration label live
@@ -1081,6 +1213,11 @@ class VoiceTrainingApp:
         dialog.open = True
         self.page.update()
 
+    def _go_to_settings(self):
+        """Navigate to settings tab."""
+        self.tabs.selected_index = 3
+        self.page.update()
+
     def toggle_theme(self):
         """Toggle between light and dark theme."""
         try:
@@ -1097,12 +1234,18 @@ class VoiceTrainingApp:
             return
         if not self.audio_recorder.is_paused:
             self.audio_recorder.pause_recording()
-            self.pause_btn.text = "▶ Resume"
-            self.status_label.value = "Paused"
+            self.pause_btn.text = "Resume"
+            self.pause_btn.icon = ICONS.PLAY_ARROW
+            self.status_label.value = "⏸ Paused"
+            self.status_label.color = self.colors['warning']
+            self.duration_label.color = self.colors['warning']
         else:
             self.audio_recorder.resume_recording()
-            self.pause_btn.text = "⏸ Pause"
-            self.status_label.value = "Recording..."
+            self.pause_btn.text = "Pause"
+            self.pause_btn.icon = ICONS.PAUSE
+            self.status_label.value = "● Recording..."
+            self.status_label.color = self.colors['error']
+            self.duration_label.color = self.colors['error']
         self.page.update()
 
     def stop_recording(self, e):
@@ -1134,12 +1277,15 @@ class VoiceTrainingApp:
         mins = int(seconds // 60)
         secs = int(seconds % 60)
         self.duration_label.value = f"Duration: {mins:02d}:{secs:02d}"
-        self.status_label.value = "Recording complete"
+        self.duration_label.color = self.colors['success']
+        self.status_label.value = "✓ Recording complete"
+        self.status_label.color = self.colors['success']
 
         # Update buttons visibility
         self.record_btn.visible = True
         self.pause_btn.visible = False
-        self.pause_btn.text = "⏸ Pause"
+        self.pause_btn.text = "Pause"
+        self.pause_btn.icon = ICONS.PAUSE
         self.stop_btn.visible = False
         self.retake_btn.visible = False
         self.delete_btn.disabled = False
@@ -1153,7 +1299,9 @@ class VoiceTrainingApp:
         self.current_audio = None
         self.audio_recorder.clear_audio()
         self.duration_label.value = "Duration: 00:00"
+        self.duration_label.color = self.colors['primary']
         self.status_label.value = "Recording deleted"
+        self.status_label.color = self.colors['text_secondary']
         self.delete_btn.disabled = True
         self.check_save_enabled()
         self.page.update()
@@ -1484,32 +1632,61 @@ class VoiceTrainingApp:
         text_content = sample.get('text_content', '(no text)')
 
         # Truncate text for display
-        display_text = text_content[:100] + "..." if len(text_content) > 100 else text_content
+        display_text = text_content[:120] + "..." if len(text_content) > 120 else text_content
 
         # Play button
         play_btn = ft.IconButton(
-            icon=ICONS.PLAY_ARROW,
-            tooltip="Play audio",
+            icon=ICONS.PLAY_CIRCLE,
+            tooltip="Play audio sample",
             on_click=lambda _: self.play_sample_audio(sample),
-            icon_color=COLORS.BLUE_700,
+            icon_color=self.colors['primary'],
+            icon_size=32,
         )
 
         # Delete button
         delete_btn = ft.IconButton(
-            icon=ICONS.DELETE,
-            tooltip="Delete sample",
+            icon=ICONS.DELETE_OUTLINE,
+            tooltip="Delete this sample",
             on_click=lambda _: self.confirm_delete_sample(sample_num),
-            icon_color=COLORS.RED_700,
+            icon_color=self.colors['error'],
+            icon_size=28,
+        )
+
+        # Sample badge
+        badge = ft.Container(
+            content=ft.Text(
+                f"#{sample_num:03d}",
+                size=12,
+                weight=ft.FontWeight.BOLD,
+                color=COLORS.WHITE,
+            ),
+            bgcolor=self.colors['primary'],
+            border_radius=12,
+            padding=ft.padding.symmetric(horizontal=10, vertical=4),
         )
 
         # Sample info
         info_column = ft.Column(
             [
-                ft.Text(f"Sample #{sample_num:03d}", weight=ft.FontWeight.BOLD, size=16),
-                ft.Text(f"Duration: {duration:.2f}s", size=12, color=COLORS.GREY_700),
-                ft.Text(f"Text: {display_text}", size=12, italic=True),
+                ft.Row([
+                    badge,
+                    ft.Text(
+                        f"{duration:.1f}s",
+                        size=13,
+                        color=self.colors['text_secondary'],
+                        weight=ft.FontWeight.W_500,
+                    ),
+                ], spacing=12),
+                ft.Container(height=4),
+                ft.Text(
+                    display_text,
+                    size=13,
+                    color=self.colors['text_primary'],
+                    max_lines=2,
+                    overflow=ft.TextOverflow.ELLIPSIS,
+                ),
             ],
-            spacing=4,
+            spacing=6,
             expand=True,
         )
 
@@ -1517,8 +1694,7 @@ class VoiceTrainingApp:
         card_content = ft.Row(
             [
                 info_column,
-                play_btn,
-                delete_btn,
+                ft.Row([play_btn, delete_btn], spacing=4),
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -1527,35 +1703,212 @@ class VoiceTrainingApp:
         return ft.Card(
             content=ft.Container(
                 content=card_content,
-                padding=15,
+                padding=16,
             ),
             elevation=2,
+            surface_tint_color=self.colors['primary_light'],
         )
 
     def play_sample_audio(self, sample: dict):
-        """Play audio for a sample.
+        """Play audio for a sample using in-app audio player.
 
         Args:
             sample: Sample info dictionary.
         """
         audio_path = sample.get('audio_path')
-        if not audio_path:
+        if not audio_path or not Path(audio_path).exists():
             self.show_error_dialog("No Audio", "Audio file not found for this sample.")
             return
 
         try:
-            # Use system default audio player
-            system = platform.system()
-            if system == "Linux":
-                subprocess.Popen(["xdg-open", audio_path])
-            elif system == "Darwin":  # macOS
-                subprocess.Popen(["open", audio_path])
-            elif system == "Windows":
-                subprocess.Popen(["start", audio_path], shell=True)
-            else:
-                self.show_error_dialog("Unsupported OS", f"Cannot play audio on {system}")
+            self.current_playing_sample = sample
+            self.show_audio_player_dialog(audio_path, sample)
         except Exception as e:
             self.show_error_dialog("Error Playing Audio", str(e))
+
+    def show_audio_player_dialog(self, audio_path: str, sample: dict):
+        """Show audio player dialog with playback controls.
+
+        Args:
+            audio_path: Path to the audio file.
+            sample: Sample info dictionary.
+        """
+        sample_num = sample['number']
+        duration = sample.get('duration', 0)
+        text_content = sample.get('text_content', '(no text)')
+
+        # Create audio player
+        self.audio_player = ft.Audio(
+            src=audio_path,
+            autoplay=True,
+            volume=1.0,
+            on_duration_changed=lambda e: self.update_audio_duration(e),
+            on_position_changed=lambda e: self.update_audio_position(e),
+            on_state_changed=lambda e: self.update_audio_state(e),
+        )
+        self.page.overlay.append(self.audio_player)
+
+        # Playback state
+        self.audio_is_playing = True
+        self.audio_duration = duration
+        self.audio_position = 0.0
+
+        # Play/Pause button
+        self.play_pause_btn = ft.IconButton(
+            icon=ICONS.PAUSE_CIRCLE,
+            icon_size=48,
+            icon_color=self.colors['primary'],
+            tooltip="Pause",
+            on_click=lambda _: self.toggle_audio_playback(),
+        )
+
+        # Progress bar
+        self.audio_progress = ft.ProgressBar(
+            value=0,
+            width=400,
+            height=8,
+            color=self.colors['primary'],
+            bgcolor=self.colors['border'],
+        )
+
+        # Time labels
+        self.audio_time_label = ft.Text(
+            "0:00 / 0:00",
+            size=13,
+            color=self.colors['text_secondary'],
+        )
+
+        # Volume slider
+        self.volume_slider = ft.Slider(
+            min=0,
+            max=100,
+            value=100,
+            width=150,
+            on_change=lambda e: self.change_volume(e),
+            active_color=self.colors['primary'],
+        )
+
+        # Sample info
+        info_text = ft.Column([
+            ft.Text(f"Sample #{sample_num:03d}", size=18, weight=ft.FontWeight.BOLD, color=self.colors['text_primary']),
+            ft.Text(f"Duration: {duration:.1f}s", size=13, color=self.colors['text_secondary']),
+            ft.Divider(height=1, color=self.colors['border']),
+            ft.Text("Text:", size=12, weight=ft.FontWeight.W_600, color=self.colors['text_primary']),
+            ft.Text(text_content, size=12, color=self.colors['text_secondary'], max_lines=4, overflow=ft.TextOverflow.ELLIPSIS),
+        ], spacing=8)
+
+        # Player controls
+        controls = ft.Column([
+            ft.Row([
+                ft.Icon(ICONS.VOLUME_UP, color=self.colors['text_secondary'], size=20),
+                self.volume_slider,
+            ], alignment=ft.MainAxisAlignment.CENTER, spacing=8),
+            ft.Container(height=8),
+            ft.Row([self.play_pause_btn], alignment=ft.MainAxisAlignment.CENTER),
+            ft.Container(height=8),
+            self.audio_progress,
+            self.audio_time_label,
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
+
+        # Dialog content
+        content = ft.Container(
+            content=ft.Column([
+                info_text,
+                ft.Divider(height=1, color=self.colors['border']),
+                controls,
+            ], spacing=16),
+            width=500,
+            padding=20,
+        )
+
+        # Create dialog
+        dialog = ft.AlertDialog(
+            modal=False,
+            title=ft.Text("Audio Player", size=20, weight=ft.FontWeight.BOLD),
+            content=content,
+            actions=[
+                ft.TextButton("Close", on_click=lambda _: self.close_audio_player(dialog)),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+
+    def toggle_audio_playback(self):
+        """Toggle audio playback between play and pause."""
+        if self.audio_player:
+            if self.audio_is_playing:
+                self.audio_player.pause()
+                self.play_pause_btn.icon = ICONS.PLAY_CIRCLE
+                self.play_pause_btn.tooltip = "Play"
+                self.audio_is_playing = False
+            else:
+                self.audio_player.resume()
+                self.play_pause_btn.icon = ICONS.PAUSE_CIRCLE
+                self.play_pause_btn.tooltip = "Pause"
+                self.audio_is_playing = True
+            self.page.update()
+
+    def change_volume(self, e):
+        """Change audio volume."""
+        if self.audio_player:
+            self.audio_player.volume = e.control.value / 100
+            self.audio_player.update()
+
+    def update_audio_duration(self, e):
+        """Update audio duration when available."""
+        if e.data and e.data != "0":
+            try:
+                self.audio_duration = float(e.data) / 1000  # Convert ms to seconds
+            except Exception:
+                pass
+
+    def update_audio_position(self, e):
+        """Update audio position during playback."""
+        if e.data:
+            try:
+                position_ms = float(e.data)
+                self.audio_position = position_ms / 1000  # Convert ms to seconds
+
+                # Update progress bar
+                if self.audio_duration > 0:
+                    progress = self.audio_position / self.audio_duration
+                    self.audio_progress.value = min(progress, 1.0)
+
+                # Update time label
+                pos_mins = int(self.audio_position // 60)
+                pos_secs = int(self.audio_position % 60)
+                dur_mins = int(self.audio_duration // 60)
+                dur_secs = int(self.audio_duration % 60)
+                self.audio_time_label.value = f"{pos_mins}:{pos_secs:02d} / {dur_mins}:{dur_secs:02d}"
+
+                self.page.update()
+            except Exception:
+                pass
+
+    def update_audio_state(self, e):
+        """Update UI based on audio state."""
+        if e.data == "completed":
+            self.audio_is_playing = False
+            self.play_pause_btn.icon = ICONS.REPLAY
+            self.play_pause_btn.tooltip = "Replay"
+            self.page.update()
+
+    def close_audio_player(self, dialog):
+        """Close audio player and clean up."""
+        if self.audio_player:
+            try:
+                self.audio_player.pause()
+                self.page.overlay.remove(self.audio_player)
+            except Exception:
+                pass
+            self.audio_player = None
+
+        self.current_playing_sample = None
+        dialog.open = False
+        self.page.update()
 
     def confirm_delete_sample(self, sample_num: int):
         """Show confirmation dialog for deleting a sample.
