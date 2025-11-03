@@ -1,9 +1,10 @@
 """Text generation panel UI component."""
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                               QLabel, QComboBox, QGroupBox, QTextEdit, QSpinBox,
-                              QDoubleSpinBox, QCheckBox, QLineEdit, QMessageBox)
+                              QDoubleSpinBox, QCheckBox, QLineEdit, QMessageBox, QDialog)
 from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from typing import Optional
+from .text_viewer_dialog import TextViewerDialog
 
 
 class TextGenerationWorker(QThread):
@@ -186,16 +187,68 @@ class TextPanel(QWidget):
         controls_group.setLayout(controls_layout)
         layout.addWidget(controls_group)
 
-        # Text display group
-        text_group = QGroupBox("Generated Text")
+        # Text display group with expand button in header
+        text_group = QGroupBox()
+        text_group_layout = QVBoxLayout()
+        text_group_layout.setContentsMargins(0, 0, 0, 0)
+        text_group_layout.setSpacing(0)
+
+        # Custom header with expand button
+        header_widget = QWidget()
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(10, 5, 10, 5)
+        header_layout.setSpacing(10)
+
+        header_label = QLabel("Generated Text")
+        header_label.setStyleSheet("QLabel { font-weight: bold; font-size: 11pt; }")
+        header_layout.addWidget(header_label)
+
+        header_layout.addStretch()
+
+        self.expand_btn = QPushButton("⛶ Expand")
+        self.expand_btn.setToolTip("Open text in expanded view for easier reading and editing (Ctrl+E)")
+        self.expand_btn.clicked.connect(self.open_text_viewer)
+        self.expand_btn.setEnabled(False)  # Enable only when there's text
+        self.expand_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 12px;
+                padding: 6px 12px;
+                background-color: #2196F3;
+                color: white;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        header_layout.addWidget(self.expand_btn)
+
+        header_widget.setLayout(header_layout)
+        header_widget.setStyleSheet("""
+            QWidget {
+                background-color: #f5f5f5;
+                border-bottom: 1px solid #cccccc;
+            }
+        """)
+        text_group_layout.addWidget(header_widget)
+
+        # Text content area
+        content_widget = QWidget()
         text_layout = QVBoxLayout()
         text_layout.setSpacing(8)
+        text_layout.setContentsMargins(10, 10, 10, 10)
 
         self.text_edit = QTextEdit()
         self.text_edit.setPlaceholderText("Generated text will appear here. You can edit it before saving.")
-        self.text_edit.setToolTip("Edit the text as needed before recording")
-        # Increase minimum height for better readability
-        self.text_edit.setMinimumHeight(250)
+        self.text_edit.setToolTip("Edit the text as needed before recording. Click 'Expand' for a larger view.")
+        # Much smaller preview - use expand button for reading
+        self.text_edit.setMinimumHeight(80)
+        self.text_edit.setMaximumHeight(120)
         text_layout.addWidget(self.text_edit)
 
         # Font size controls and character/word count
@@ -262,11 +315,18 @@ class TextPanel(QWidget):
 
         text_layout.addLayout(controls_row)
 
-        # Connect text changes to update count
+        # Connect text changes to update count and enable expand button
         self.text_edit.textChanged.connect(self.update_counts)
+        self.text_edit.textChanged.connect(self.check_expand_button)
 
-        text_group.setLayout(text_layout)
-        layout.addWidget(text_group, 1)  # Give more space to text display
+        content_widget.setLayout(text_layout)
+        text_group_layout.addWidget(content_widget)
+
+        text_group.setLayout(text_group_layout)
+        layout.addWidget(text_group)  # Don't stretch - keep compact
+
+        # Add stretch at the bottom to push content to top
+        layout.addStretch()
 
         self.setLayout(layout)
 
@@ -410,3 +470,19 @@ class TextPanel(QWidget):
         if self.default_font_size > 8:  # Minimum font size
             self.default_font_size -= 2
             self.update_text_font()
+
+    def check_expand_button(self):
+        """Enable or disable expand button based on text content."""
+        has_text = bool(self.text_edit.toPlainText().strip())
+        self.expand_btn.setEnabled(has_text)
+
+    def open_text_viewer(self):
+        """Open the text viewer dialog for expanded editing."""
+        current_text = self.text_edit.toPlainText()
+
+        dialog = TextViewerDialog(current_text, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Save the edited text back to the main text area
+            edited_text = dialog.get_text()
+            self.text_edit.setPlainText(edited_text)
+            self.text_generated.emit(edited_text)
